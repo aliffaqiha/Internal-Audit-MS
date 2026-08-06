@@ -1,6 +1,7 @@
 using IAMS.Application.Common.Interfaces;
 using IAMS.Infrastructure.Common;
 using IAMS.Infrastructure.Persistence;
+using IAMS.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,13 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
         services.AddScoped<IDateTimeService, DateTimeService>();
+
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+
+        services.AddScoped<ITokenProvider, JwtTokenProvider>();
+        services.AddScoped<IPasswordHasher, PasswordHasherService>();
+        services.AddScoped<IEmailService, LogEmailService>();
+        services.AddScoped<IAuditService, AuditService>();
 
         return services;
     }
