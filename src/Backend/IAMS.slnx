@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/API/">
+    <Project Path="API/IAMS.Api.csproj" />
+  </Folder>
+  <Folder Name="/Application/">
+    <Project Path="Application/IAMS.Application.csproj" />
+  </Folder>
+  <Folder Name="/Domain/">
+    <Project Path="Domain/IAMS.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="Infrastructure/IAMS.Infrastructure.csproj" />
+  </Folder>
+  <Project Path="../../tests/API.IntegrationTests/IAMS.API.IntegrationTests.csproj" />
+  <Project Path="../../tests/Application.UnitTests/IAMS.Application.UnitTests.csproj" />
+  <Project Path="../../tests/Domain.UnitTests/IAMS.Domain.UnitTests.csproj" />
+</Solution>

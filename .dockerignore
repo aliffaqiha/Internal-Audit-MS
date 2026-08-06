@@ -1,0 +1,17 @@
+# .NET
+bin/
+obj/
+Debug/
+Release/
+.vs/
+
+# Node
+node_modules/
+
+# Environment
+.env
+
+# Logs/Caches
+logs/
+*.log
+.temp/

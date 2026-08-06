@@ -1,0 +1,84 @@
+name: iams
+
+services:
+  # PostgreSQL relational database
+  postgres:
+    image: postgres:17-alpine
+    container_name: iams-postgres
+    environment:
+      POSTGRES_DB: iams
+      POSTGRES_USER: iams
+      POSTGRES_PASSWORD: iams_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iams -d iams"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Redis - session + cache
+  redis:
+    image: redis:7-alpine
+    container_name: iams-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # MinIO - object storage for evidence/reports
+  minio:
+    image: minio/minio:latest
+    container_name: iams-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: iams_minio
+      MINIO_ROOT_PASSWORD: iams_minio_secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Seq - structured log sink
+  seq:
+    image: datalust/seq:latest
+    container_name: iams-seq
+    environment:
+      ACCEPT_EULA: "Y"
+    ports:
+      - "5341:80"
+    volumes:
+      - seqdata:/data
+
+  # Jaeger (optional) - distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: iams-jaeger
+    environment:
+      COLLECTOR_ZIPKIN_HOST_PORT: :9411
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+
+# Note: Hangfire runs in-process inside the API and uses PostgreSQL via
+# Hangfire.PostgreSql; no separate container is required.
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+  seqdata:

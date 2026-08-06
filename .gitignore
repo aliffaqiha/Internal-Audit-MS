@@ -1,0 +1,34 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+
+# .NET
+bin/
+obj/
+*.user
+artifacts/
+*.nupkg
+TestResults/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+appsettings.Development.json
+
+# Logs
+logs/
+*.log
