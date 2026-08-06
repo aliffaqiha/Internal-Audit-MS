@@ -2,11 +2,11 @@
 
 > Fase diurutkan berdasarkan nilai bisnis tertinggi dengan kompleksitas terkendali.
 > Setiap fase memiliki **deliverable**, **acceptance criteria**, dan **estimasi**.
-> Prinsip: bangun fondasi solid dulu (auth + DB), lalu inti bisnis (planning → finding → CAP → verification), baru report, dashboard, dan otomasi.
+> Prinsip: bangun fondasi solid  (auth + DB), lalu inti bisnis (planning → finding → CAP → verification), dilanjutkan dengan report, dashboard, dan otomasi.
 
 ---
 
-## Fase 0 — Setup & Fondasi (1–2 minggu)
+## Fase 0 — Setup & Fondasi
 
 **Goal:** Repo, lingkungan dev, dan CI dasar berjalan.
 
@@ -23,7 +23,7 @@
 
 ---
 
-## Fase 1 — Authentication & RBAC (1–2 minggu)
+## Fase 1 — Authentication & RBAC 
 
 **Goal:** Akses aman; dasar semua fitur lain.
 
@@ -37,7 +37,7 @@
 
 ---
 
-## Fase 2 — User, Department, Role Management (1–2 minggu)
+## Fase 2 — User, Department, Role Management
 
 **Goal:** Master data & otorisasi berfungsi.
 
@@ -50,7 +50,7 @@
 
 ---
 
-## Fase 3 — Audit Planning (2 minggu)
+## Fase 3 — Audit Planning
 
 **Goal:** Rencana audit mengalir dari Draft → Completed.
 
@@ -65,7 +65,7 @@
 
 ---
 
-## Fase 4 — Finding & Evidence (2 minggu)
+## Fase 4 — Finding & Evidence
 
 **Goal:** Temuan terinci + bukti ber-versi.
 
@@ -79,7 +79,7 @@
 
 ---
 
-## Fase 5 — Corrective Action Plan & Verification (2–3 minggu)
+## Fase 5 — Corrective Action Plan & Verification
 
 **Goal:** Loop tindak lanjut lengkap (auditee isi → verify → close).
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Fase 6 — Audit Trail & Notifications (1–2 minggu)
+## Fase 6 — Audit Trail & Notifications
 
 **Goal:** Traceability & notifikasi otomatis.
 
@@ -106,7 +106,7 @@
 
 ---
 
-## Fase 7 — Audit Report (1–2 minggu)
+## Fase 7 — Audit Report 
 
 **Goal:** Generate laporan PDF.
 
@@ -119,7 +119,7 @@
 
 ---
 
-## Fase 8 — Dashboard & Analytics (2–3 minggu)
+## Fase 8 — Dashboard & Analytics 
 
 **Goal:** Nilai jual utama — insight manajemen.
 
@@ -140,7 +140,7 @@
 
 ---
 
-## Fase 9 — Background Job & Otomasi (1 minggu)
+## Fase 9 — Background Job & Otomasi 
 
 **Goal:** Pengingat dan maintenance otomatis.
 
@@ -175,7 +175,7 @@
 
 ---
 
-## Fase 12 — Deployment & Go-Live (1 minggu)
+## Fase 12 — Deployment & Go-Live
 
 - [ ] Docker image production build (multi-stage)
 - [ ] Reverse proxy (Traefik/NGINX) + HTTPS
@@ -199,6 +199,3 @@
 - Dashboard pakai **query cache** agar tidak membebani database.
 - MFA, File Encryption, ElasticSearch, Outbox + RabbitMQ bersifat **opsional** — tambahkan hanya jika waktu memungkinkan.
 
----
-
-*Estimasi total: ±4–6 bulan (1 developer part-time) hingga full production.*
