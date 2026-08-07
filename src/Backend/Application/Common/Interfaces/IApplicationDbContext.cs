@@ -10,6 +10,9 @@ public interface IApplicationDbContext
     DbSet<Role> Roles { get; }
     DbSet<UserRole> UserRoles { get; }
     DbSet<Department> Departments { get; }
+    DbSet<AuditPlan> AuditPlans { get; }
+    DbSet<AuditAssignment> AuditAssignments { get; }
+    DbSet<AuditChecklistItem> AuditChecklistItems { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<PasswordResetToken> PasswordResetTokens { get; }

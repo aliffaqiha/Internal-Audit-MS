@@ -44,6 +44,10 @@ public sealed class ExceptionHandlingMiddleware
                 StatusCodes.Status401Unauthorized,
                 new { message = "Unauthorized." } as object),
 
+            KeyNotFoundException => (
+                StatusCodes.Status404NotFound,
+                new { message = exception.Message } as object),
+
             InvalidOperationException => (
                 StatusCodes.Status409Conflict,
                 new { message = exception.Message } as object),

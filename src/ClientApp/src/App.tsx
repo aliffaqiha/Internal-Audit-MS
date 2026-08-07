@@ -1,6 +1,12 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 
+import { AdminRoute } from "@/components/AdminRoute"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
+import { AdminLayout } from "@/features/admin/AdminLayout"
+import { DepartmentsPage } from "@/features/admin/DepartmentsPage"
+import { UsersPage } from "@/features/admin/UsersPage"
+import { AuditPlanDetailPage } from "@/features/audit/AuditPlanDetailPage"
+import { AuditPlansPage } from "@/features/audit/AuditPlansPage"
 import { AuthProvider } from "@/features/auth/auth-context"
 import { ForgotPasswordPage } from "@/features/auth/ForgotPasswordPage"
 import { HomePage } from "@/features/auth/HomePage"
@@ -16,7 +22,29 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<HomePage />} />
+            <Route element={<AdminLayout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/audits" element={<AuditPlansPage />} />
+              <Route path="/audits/:id" element={<AuditPlanDetailPage />} />
+              <Route
+                path="/admin/users"
+                element={
+                  <>
+                    <AdminRoute />
+                    <UsersPage />
+                  </>
+                }
+              />
+              <Route
+                path="/admin/departments"
+                element={
+                  <>
+                    <AdminRoute />
+                    <DepartmentsPage />
+                  </>
+                }
+              />
+            </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

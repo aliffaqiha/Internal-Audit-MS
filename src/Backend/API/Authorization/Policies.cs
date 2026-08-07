@@ -11,6 +11,8 @@ public static class Policies
     public const string TopManagement = "TopManagement";
 
     public const string DashboardView = "DashboardView";
+    public const string AuditPlanner = "AuditPlanner";
+    public const string AuditApprover = "AuditApprover";
 
     public static AuthorizationOptions Register(this AuthorizationOptions options)
     {
@@ -22,6 +24,16 @@ public static class Policies
         options.AddPolicy(DashboardView, p => p.RequireRole(
             Domain.Enums.RoleConstants.TopManagement,
             Domain.Enums.RoleConstants.Manager));
+
+        // Audit planning workflow participants.
+        options.AddPolicy(AuditPlanner, p => p.RequireRole(
+            Domain.Enums.RoleConstants.Auditor,
+            Domain.Enums.RoleConstants.Manager,
+            Domain.Enums.RoleConstants.Administrator));
+
+        options.AddPolicy(AuditApprover, p => p.RequireRole(
+            Domain.Enums.RoleConstants.Manager,
+            Domain.Enums.RoleConstants.Administrator));
 
         return options;
     }

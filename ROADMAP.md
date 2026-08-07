@@ -41,10 +41,10 @@
 
 **Goal:** Master data & otorisasi berfungsi.
 
-- [ ] CRUD Department (Finance, HR, IT, Procurement, Warehouse, Production)
-- [ ] CRUD User (assign role, assign department, active/inactive)
-- [ ] Policy-Based Authorization per action (Admin-only untuk management)
-- [ ] UI admin (daftar user, form create/update)
+- [x] CRUD Department (Finance, HR, IT, Procurement, Warehouse, Production)
+- [x] CRUD User (assign role, assign department, active/inactive)
+- [x] Policy-Based Authorization per action (Admin-only untuk management)
+- [x] UI admin (daftar user, form create/update)
 
 **DOD:** Admin bisa buat/edit/hapus user & assignment; user non-admin terblokir dari endpoint admin.
 
@@ -54,12 +54,12 @@
 
 **Goal:** Rencana audit mengalir dari Draft → Completed.
 
-- [ ] Entity: AuditPlan (objective, scope, schedule, status)
-- [ ] Entity: AuditAssignment (anggota tim audit)
-- [ ] Workflow status: Draft → Submitted → Approved → In Progress → Completed
-- [ ] Command: CreateAuditPlan, Submit, Approve, Start, Complete (CQRS)
-- [ ] Audit Checklist (template per standar, contoh IT: backup, firewall, access control, patch)
-- [ ] API + UI form planning + daftar rencana audit
+- [x] Entity: AuditPlan (objective, scope, schedule, status)
+- [x] Entity: AuditAssignment (anggota tim audit)
+- [x] Workflow status: Draft → Submitted → Approved → In Progress → Completed
+- [x] Command: CreateAuditPlan, Submit, Approve, Start, Complete (CQRS)
+- [x] Audit Checklist (template per standar, contoh IT: backup, firewall, access control, patch)
+- [x] API + UI form planning + daftar rencana audit
 
 **DOD:** Auditor membuat rencana → submit → manager approve → start → complete; checklist bisa dijalankan per audit plan.
 
