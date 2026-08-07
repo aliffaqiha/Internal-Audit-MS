@@ -69,11 +69,11 @@
 
 **Goal:** Temuan terinci + bukti ber-versi.
 
-- [ ] CRUD Finding (title, description, department, risk level, category, recommendation, due date)
-- [ ] Risk: Low / Medium / High / Critical
-- [ ] Upload Evidence (PDF, Image, Excel, Word) → MinIO; versioning + timestamp + metadata
-- [ ] Validasi tipe/ukuran file + secure filename (no path traversal)
-- [ ] Domain Event `FindingCreated` → notifikasi + audit log
+- [x] CRUD Finding (title, description, department, risk level, category, recommendation, due date)
+- [x] Risk: Low / Medium / High / Critical
+- [x] Upload Evidence (PDF, Image, Excel, Word) → MinIO; versioning + timestamp + metadata
+- [x] Validasi tipe/ukuran file + secure filename (no path traversal)
+- [x] Domain Event `FindingCreated` → notifikasi + audit log
 
 **DOD:** Auditor membuat temuan dan mengunggah bukti (version-aware); file tersimpan di MinIO dan tercatat.
 

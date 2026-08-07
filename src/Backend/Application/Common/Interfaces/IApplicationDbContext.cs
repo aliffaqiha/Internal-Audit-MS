@@ -13,6 +13,8 @@ public interface IApplicationDbContext
     DbSet<AuditPlan> AuditPlans { get; }
     DbSet<AuditAssignment> AuditAssignments { get; }
     DbSet<AuditChecklistItem> AuditChecklistItems { get; }
+    DbSet<Finding> Findings { get; }
+    DbSet<FindingEvidence> FindingEvidences { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<PasswordResetToken> PasswordResetTokens { get; }

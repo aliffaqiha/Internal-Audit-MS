@@ -1,4 +1,4 @@
-import { Building2, ClipboardList, LayoutDashboard, LogOut, ShieldCheck, Users } from "lucide-react"
+import { Building2, ClipboardList, FileWarning, LayoutDashboard, LogOut, ShieldCheck, Users } from "lucide-react"
 import { NavLink, Outlet, useNavigate } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,7 @@ const adminRoles = ["Administrator"]
 const allNavItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: null },
   { to: "/audits", label: "Audit", icon: ClipboardList, roles: plannerRoles },
+  { to: "/findings", label: "Temuan", icon: FileWarning, roles: plannerRoles },
   { to: "/admin/users", label: "Pengguna", icon: Users, roles: adminRoles },
   { to: "/admin/departments", label: "Departemen", icon: Building2, roles: adminRoles },
 ]

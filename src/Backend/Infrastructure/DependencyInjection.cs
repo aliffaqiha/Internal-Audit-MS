@@ -32,6 +32,9 @@ public static class DependencyInjection
         services.AddScoped<IEmailService, LogEmailService>();
         services.AddScoped<IAuditService, AuditService>();
 
+        services.Configure<MinioOptions>(configuration.GetSection(MinioOptions.SectionName));
+        services.AddSingleton<IObjectStorageService, ObjectStorageService>();
+
         return services;
     }
 }

@@ -13,6 +13,7 @@ public static class Policies
     public const string DashboardView = "DashboardView";
     public const string AuditPlanner = "AuditPlanner";
     public const string AuditApprover = "AuditApprover";
+    public const string FindingManager = "FindingManager";
 
     public static AuthorizationOptions Register(this AuthorizationOptions options)
     {
@@ -32,6 +33,12 @@ public static class Policies
             Domain.Enums.RoleConstants.Administrator));
 
         options.AddPolicy(AuditApprover, p => p.RequireRole(
+            Domain.Enums.RoleConstants.Manager,
+            Domain.Enums.RoleConstants.Administrator));
+
+        // Finding management (create/update/delete/upload evidence).
+        options.AddPolicy(FindingManager, p => p.RequireRole(
+            Domain.Enums.RoleConstants.Auditor,
             Domain.Enums.RoleConstants.Manager,
             Domain.Enums.RoleConstants.Administrator));
 
