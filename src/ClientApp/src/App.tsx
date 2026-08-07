@@ -12,6 +12,7 @@ import { ForgotPasswordPage } from "@/features/auth/ForgotPasswordPage"
 import { HomePage } from "@/features/auth/HomePage"
 import { LoginPage } from "@/features/auth/LoginPage"
 import { ResetPasswordPage } from "@/features/auth/ResetPasswordPage"
+import { CapsPage } from "@/features/caps/CapsPage"
 import { FindingDetailPage } from "@/features/findings/FindingDetailPage"
 import { FindingsPage } from "@/features/findings/FindingsPage"
 
@@ -30,6 +31,7 @@ function App() {
               <Route path="/audits/:id" element={<AuditPlanDetailPage />} />
               <Route path="/findings" element={<FindingsPage />} />
               <Route path="/findings/:id" element={<FindingDetailPage />} />
+              <Route path="/caps" element={<CapsPage />} />
               <Route
                 path="/admin/users"
                 element={

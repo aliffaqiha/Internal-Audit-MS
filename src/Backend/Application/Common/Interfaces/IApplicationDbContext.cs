@@ -15,6 +15,7 @@ public interface IApplicationDbContext
     DbSet<AuditChecklistItem> AuditChecklistItems { get; }
     DbSet<Finding> Findings { get; }
     DbSet<FindingEvidence> FindingEvidences { get; }
+    DbSet<CorrectiveAction> CorrectiveActions { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<PasswordResetToken> PasswordResetTokens { get; }

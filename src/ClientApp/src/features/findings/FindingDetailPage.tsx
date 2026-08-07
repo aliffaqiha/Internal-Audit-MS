@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useAuth } from "@/features/auth/auth-context"
+import { CapSection } from "@/features/caps/CapSection"
 import { findingsApi } from "@/features/findings/findings-api"
 import { RiskLevelLabels, type RiskLevel } from "@/features/findings/types"
 
@@ -208,6 +209,8 @@ export function FindingDetailPage() {
           {uploadingFor && <p className="pt-2 text-sm text-muted-foreground">Mengunggah...</p>}
         </CardContent>
       </Card>
+
+      <CapSection findingId={data.id} />
     </div>
   )
 }

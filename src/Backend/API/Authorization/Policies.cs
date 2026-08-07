@@ -14,6 +14,8 @@ public static class Policies
     public const string AuditPlanner = "AuditPlanner";
     public const string AuditApprover = "AuditApprover";
     public const string FindingManager = "FindingManager";
+    public const string CapEditor = "CapEditor";
+    public const string CapVerifier = "CapVerifier";
 
     public static AuthorizationOptions Register(this AuthorizationOptions options)
     {
@@ -38,6 +40,19 @@ public static class Policies
 
         // Finding management (create/update/delete/upload evidence).
         options.AddPolicy(FindingManager, p => p.RequireRole(
+            Domain.Enums.RoleConstants.Auditor,
+            Domain.Enums.RoleConstants.Manager,
+            Domain.Enums.RoleConstants.Administrator));
+
+        // CAP editing (auditee fills, auditors/managers/admins can assist).
+        options.AddPolicy(CapEditor, p => p.RequireRole(
+            Domain.Enums.RoleConstants.Auditee,
+            Domain.Enums.RoleConstants.Auditor,
+            Domain.Enums.RoleConstants.Manager,
+            Domain.Enums.RoleConstants.Administrator));
+
+        // CAP verification (auditor review: approve / reject / reopen).
+        options.AddPolicy(CapVerifier, p => p.RequireRole(
             Domain.Enums.RoleConstants.Auditor,
             Domain.Enums.RoleConstants.Manager,
             Domain.Enums.RoleConstants.Administrator));

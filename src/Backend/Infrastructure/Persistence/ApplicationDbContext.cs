@@ -29,6 +29,7 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<AuditChecklistItem> AuditChecklistItems => Set<AuditChecklistItem>();
     public DbSet<Finding> Findings => Set<Finding>();
     public DbSet<FindingEvidence> FindingEvidences => Set<FindingEvidence>();
+    public DbSet<CorrectiveAction> CorrectiveActions => Set<CorrectiveAction>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();

@@ -83,11 +83,11 @@
 
 **Goal:** Loop tindak lanjut lengkap (auditee isi → verify → close).
 
-- [ ] CAP (action, PIC, target date, progress, attachment)
-- [ ] Status: Open → In Progress → Pending Verification → Closed
-- [ ] Verification flow: auditor review → approve / reject → reopen
-- [ ] Relasi Finding ↔ CAP
-- [ ] API + UI auditee dashboard untuk entri CAP
+- [x] CAP (action, PIC, target date, progress, attachment)
+- [x] Status: Open → In Progress → Pending Verification → Closed
+- [x] Verification flow: auditor review → approve / reject → reopen
+- [x] Relasi Finding ↔ CAP
+- [x] API + UI auditee dashboard untuk entri CAP
 
 **DOD:** Auditee bisa mengisi CAP; auditor review/approve/reject; status berubah sesuai alur.
 
