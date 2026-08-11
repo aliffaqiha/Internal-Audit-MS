@@ -3,6 +3,7 @@ import { api } from "@/lib/api"
 import type {
   AuditPlanDto,
   AuditPlanStatus,
+  AuditReportDto,
   CreateAuditPlanPayload,
   AuditTeamMemberDto,
   ChecklistItemStatus,
@@ -30,4 +31,20 @@ export const auditApi = {
     itemId: string,
     payload: { status: ChecklistItemStatus; note: string | null }
   ) => api.put(`/audits/${planId}/checklist/${itemId}`, payload).then(() => undefined),
+
+  reportMeta: (id: string) =>
+    api.get<AuditReportDto>(`/audits/${id}/report/meta`).then((r) => r.data),
+
+  generateReport: (id: string) =>
+    api.post<AuditReportDto>(`/audits/${id}/report`).then((r) => r.data),
+
+  downloadReport: async (id: string, fileName: string) => {
+    const res = await api.get<Blob>(`/audits/${id}/report`, { responseType: "blob" })
+    const url = URL.createObjectURL(res.data)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = fileName
+    a.click()
+    URL.revokeObjectURL(url)
+  },
 }

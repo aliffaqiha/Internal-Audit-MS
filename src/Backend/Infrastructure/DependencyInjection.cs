@@ -50,6 +50,7 @@ public static class DependencyInjection
         services.AddHostedService(sp => (Microsoft.Extensions.Hosting.BackgroundService)sp.GetRequiredService<ICapReminderService>());
 
         services.AddSingleton<IObjectStorageService, ObjectStorageService>();
+        services.AddScoped<IReportService, QuestPdfReportService>();
 
         return services;
     }

@@ -67,6 +67,16 @@ export interface AuditPlanChecklistItemDto {
   note: string | null
 }
 
+export interface AuditReportDto {
+  id: string
+  auditPlanId: string
+  objectName: string
+  fileName: string
+  contentType: string
+  sizeBytes: number
+  generatedAt: string
+}
+
 export interface AuditPlanDto {
   id: string
   title: string

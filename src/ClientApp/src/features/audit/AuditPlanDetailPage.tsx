@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowLeft, CheckCircle2, Send, Rocket, Flag } from "lucide-react"
+import { ArrowLeft, CheckCircle2, Send, Rocket, Flag, FileText, Download } from "lucide-react"
 import { useState } from "react"
 import { Link, useParams } from "react-router-dom"
 
@@ -72,6 +72,31 @@ export function AuditPlanDetailPage() {
       note: string | null
     }) => auditApi.updateChecklistItem(id, itemId, { status, note }),
     onSuccess: invalidate,
+  })
+
+  const canHaveReport =
+    plan.data != null && ["Approved", "InProgress", "Completed"].includes(plan.data.status)
+
+  const reportMeta = useQuery({
+    queryKey: ["audits", id, "report"],
+    queryFn: () => auditApi.reportMeta(id),
+    enabled: canHaveReport,
+    retry: false,
+  })
+
+  const generateReport = useMutation({
+    mutationFn: () => auditApi.generateReport(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audits", id, "report"] })
+    },
+  })
+
+  const downloadReport = useMutation({
+    mutationFn: async () => {
+      const meta = reportMeta.data
+      if (!meta) return
+      await auditApi.downloadReport(id, meta.fileName)
+    },
   })
 
   const data = plan.data
@@ -178,6 +203,61 @@ export function AuditPlanDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {canHaveReport && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="size-4" />
+              Laporan Audit
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 text-sm">
+            {reportMeta.data ? (
+              <>
+                <div className="grid gap-1">
+                  <span className="font-medium">File</span>
+                  <span className="text-muted-foreground">
+                    {reportMeta.data.fileName} (
+                    {(reportMeta.data.sizeBytes / 1024).toFixed(0)} kB)
+                  </span>
+                </div>
+                <div className="grid gap-1">
+                  <span className="font-medium">Dibuat</span>
+                  <span className="text-muted-foreground">
+                    {new Date(reportMeta.data.generatedAt).toLocaleString("id-ID")}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <p className="text-muted-foreground">
+                Belum ada laporan untuk rencana audit ini. Laporan berisi ringkasan eksekutif,
+                hasil checklist, temuan & rekomendasi, serta kesimpulan.
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {isPlanner && (
+                <Button
+                  onClick={() => generateReport.mutate()}
+                  disabled={generateReport.isPending || reportMeta.isLoading}
+                >
+                  {generateReport.isPending ? "Membuat..." : reportMeta.data ? "Perbarui Laporan" : "Buat Laporan"}
+                </Button>
+              )}
+              {reportMeta.data && (
+                <Button
+                  variant="outline"
+                  onClick={() => downloadReport.mutate()}
+                  disabled={downloadReport.isPending}
+                >
+                  <Download data-icon="inline-start" />
+                  Unduh PDF
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

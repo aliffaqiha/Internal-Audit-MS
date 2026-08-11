@@ -110,10 +110,10 @@
 
 **Goal:** Generate laporan PDF.
 
-- [ ] Struktur laporan: Executive Summary, Finding, Recommendation, Conclusion
-- [ ] PDF generation server-side
-- [ ] Download / simpan ke MinIO
-- [ ] Template & layout konsisten
+- [x] Struktur laporan: Executive Summary, Finding, Recommendation, Conclusion
+- [x] PDF generation server-side
+- [x] Download / simpan ke MinIO
+- [x] Template & layout konsisten
 
 **DOD:** Laporan PDF lengkap bisa di-generate dari data audit dalam satu klik.
 

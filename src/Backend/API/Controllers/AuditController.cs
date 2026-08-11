@@ -1,5 +1,7 @@
 using IAMS.Api.Authorization;
+using IAMS.Application.AuditReports;
 using IAMS.Application.Audits;
+using IAMS.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +14,12 @@ namespace IAMS.Api.Controllers;
 public sealed class AuditController : ControllerBase
 {
     private readonly ISender _sender;
+    private readonly IObjectStorageService _storage;
 
-    public AuditController(ISender sender)
+    public AuditController(ISender sender, IObjectStorageService storage)
     {
         _sender = sender;
+        _storage = storage;
     }
 
     [HttpGet]
@@ -88,5 +92,39 @@ public sealed class AuditController : ControllerBase
     {
         await _sender.Send(command with { AuditPlanId = auditPlanId, ItemId = itemId }, ct);
         return NoContent();
+    }
+
+    [HttpGet("{id:guid}/report/meta")]
+    [ProducesResponseType(typeof(AuditReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AuditReportDto>> GetReportMeta(Guid id, CancellationToken ct)
+    {
+        var report = await _sender.Send(new GetAuditReportQuery(id), ct);
+        return report is null ? NotFound() : Ok(report);
+    }
+
+    [HttpPost("{id:guid}/report")]
+    [Authorize(Policy = Policies.AuditPlanner)]
+    [ProducesResponseType(typeof(AuditReportDto), StatusCodes.Status201Created)]
+    public async Task<ActionResult<AuditReportDto>> GenerateReport(Guid id, CancellationToken ct)
+    {
+        var report = await _sender.Send(new GenerateAuditReportCommand(id), ct);
+        return CreatedAtAction(nameof(GetReportMeta), new { id }, report);
+    }
+
+    [HttpGet("{id:guid}/report")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadReport(Guid id, CancellationToken ct)
+    {
+        var report = await _sender.Send(new GetAuditReportQuery(id), ct);
+        if (report is null)
+            return NotFound();
+
+        var stream = await _storage.GetAsync(report.ObjectName, ct);
+        if (stream is null)
+            return NotFound();
+
+        return File(stream, report.ContentType, report.FileName);
     }
 }

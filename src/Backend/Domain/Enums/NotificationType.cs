@@ -5,5 +5,6 @@ public enum NotificationType
 {
     FindingAssigned = 1,
     AuditApproved = 2,
-    CapReminder = 3
+    CapReminder = 3,
+    ReportReady = 4
 }
