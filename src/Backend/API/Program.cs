@@ -1,5 +1,8 @@
+using Hangfire;
+using Hangfire.PostgreSql;
 using IAMS.Api.Authorization;
 using IAMS.Api.Hubs;
+using IAMS.Api.Jobs;
 using IAMS.Api.Middleware;
 using IAMS.Api.Services;
 using IAMS.Application;
@@ -98,6 +101,25 @@ var healthChecks = builder.Services.AddHealthChecks();
 if (builder.Environment.EnvironmentName != "Testing")
 {
     healthChecks.AddDbContextCheck<ApplicationDbContext>("database");
+
+    // Hangfire: background jobs + dashboard (PostgreSQL storage). Skipped in Testing env.
+    var hangfireConnection = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+    builder.Services.AddHangfire(config => config
+        .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+        .UseSimpleAssemblyNameTypeSerializer()
+        .UseRecommendedSerializerSettings()
+        .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(hangfireConnection)));
+
+    builder.Services.AddHangfireServer();
+    builder.Services.AddHostedService<HangfireJobScheduler>();
+    builder.Services.AddSingleton<IReportGenerationJob, ReportGenerationJob>();
+    builder.Services.AddSingleton<IAuditReportJobQueue, HangfireAuditReportJobQueue>();
+}
+else
+{
+    builder.Services.AddSingleton<IAuditReportJobQueue, NoopAuditReportJobQueue>();
 }
 
 // CORS origins (default to client dev server when not configured)
@@ -141,6 +163,16 @@ app.UseHttpsRedirection();
 app.UseCors("ClientApp");
 app.UseAuthentication();
 app.UseAuthorization();
+
+if (app.Environment.EnvironmentName != "Testing")
+{
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = [new HangfireDashboardAuthorizationFilter()],
+        AppPath = "/",
+        StatsPollingInterval = 5000
+    });
+}
 
 app.MapControllers();
 app.MapHealthChecks("/health");

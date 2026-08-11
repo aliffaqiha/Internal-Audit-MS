@@ -18,11 +18,16 @@ internal sealed class CompleteAuditPlanCommandHandler : IRequestHandler<Complete
 {
     private readonly IApplicationDbContext _db;
     private readonly IAuditService _audit;
+    private readonly IAuditReportJobQueue _reportQueue;
 
-    public CompleteAuditPlanCommandHandler(IApplicationDbContext db, IAuditService audit)
+    public CompleteAuditPlanCommandHandler(
+        IApplicationDbContext db,
+        IAuditService audit,
+        IAuditReportJobQueue reportQueue)
     {
         _db = db;
         _audit = audit;
+        _reportQueue = reportQueue;
     }
 
     public async Task Handle(CompleteAuditPlanCommand request, CancellationToken cancellationToken)
@@ -47,5 +52,8 @@ internal sealed class CompleteAuditPlanCommandHandler : IRequestHandler<Complete
         await _db.SaveChangesAsync(cancellationToken);
         await _audit.LogAsync("AuditPlan.Completed", nameof(AuditPlan), plan.Id.ToString(),
             oldValues: "InProgress", newValues: "Completed", cancellationToken: cancellationToken);
+
+        // Generate the audit report in the background once the plan is finished.
+        await _reportQueue.EnqueueGenerateReportAsync(plan.Id, cancellationToken);
     }
 }

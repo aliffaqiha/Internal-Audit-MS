@@ -144,9 +144,9 @@
 
 **Goal:** Pengingat dan maintenance otomatis.
 
-- [ ] Hangfire: reminder CAP due/overdue, cleanup temp file, report generation
-- [ ] Job cron yang idempotent
-- [ ] Outbox Pattern (opsional) untuk future messaging
+- [x] Hangfire: reminder CAP due/overdue, cleanup temp file, report generation
+- [x] Job cron yang idempotent
+- [ ] Outbox Pattern (opsional) untuk future messaging — ditunda (event in-process via MediatR sudah cukup saat ini)
 
 **DOD:** Reminder terkirim otomatis tanpa intervensi manual.
 

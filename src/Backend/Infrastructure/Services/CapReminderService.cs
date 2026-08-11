@@ -3,9 +3,7 @@ using IAMS.Application.Notifications;
 using IAMS.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace IAMS.Infrastructure.Services;
 
@@ -17,24 +15,21 @@ public sealed class ReminderOptions
     public int CapCheckIntervalHours { get; set; } = 6;
 }
 
-/// <summary>Runs periodic CAP due/overdue scans and notifies the affected auditees.</summary>
+/// <summary>Scans CAP due/overdue and notifies the affected auditees. Scheduled by Hangfire.</summary>
 public interface ICapReminderService
 {
     Task RunOnceAsync(CancellationToken cancellationToken = default);
 }
 
-public sealed class CapReminderService : BackgroundService, ICapReminderService
+public sealed class CapReminderService : ICapReminderService
 {
-    private readonly ReminderOptions _options;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<CapReminderService> _logger;
 
     public CapReminderService(
-        IOptions<ReminderOptions> options,
         IServiceScopeFactory scopeFactory,
         ILogger<CapReminderService> logger)
     {
-        _options = options.Value;
         _scopeFactory = scopeFactory;
         _logger = logger;
     }
@@ -122,27 +117,5 @@ public sealed class CapReminderService : BackgroundService, ICapReminderService
 
         if (notifiedDue > 0 || notifiedOverdue > 0)
             _logger.LogInformation("CAP reminders sent -> dueTomorrow={Due} overdue={Overdue}", notifiedDue, notifiedOverdue);
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        var delay = TimeSpan.FromHours(Math.Max(1, _options.CapCheckIntervalHours));
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            await Task.Delay(delay, stoppingToken);
-            try
-            {
-                await RunOnceAsync(stoppingToken);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "CAP reminder scan failed");
-            }
-        }
     }
 }

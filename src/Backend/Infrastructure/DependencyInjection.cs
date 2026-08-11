@@ -56,9 +56,11 @@ public static class DependencyInjection
         // In-app notifications.
         services.AddScoped<INotificationService, NotificationService>();
 
-        // CAP due/overdue reminders (periodic + on demand).
+        // CAP due/overdue reminders (scheduled by Hangfire recurring job).
         services.AddSingleton<ICapReminderService, CapReminderService>();
-        services.AddHostedService(sp => (Microsoft.Extensions.Hosting.BackgroundService)sp.GetRequiredService<ICapReminderService>());
+
+        // Maintenance: purge expired refresh/password-reset tokens.
+        services.AddSingleton<ICleanupService, CleanupService>();
 
         services.AddSingleton<IObjectStorageService, ObjectStorageService>();
         services.AddScoped<IReportService, QuestPdfReportService>();
