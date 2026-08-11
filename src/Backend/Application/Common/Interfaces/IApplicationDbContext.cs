@@ -16,6 +16,7 @@ public interface IApplicationDbContext
     DbSet<Finding> Findings { get; }
     DbSet<FindingEvidence> FindingEvidences { get; }
     DbSet<CorrectiveAction> CorrectiveActions { get; }
+    DbSet<Notification> Notifications { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<PasswordResetToken> PasswordResetTokens { get; }

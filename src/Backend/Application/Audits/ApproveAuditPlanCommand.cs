@@ -2,6 +2,7 @@ using FluentValidation;
 using IAMS.Application.Common.Interfaces;
 using IAMS.Domain.Entities;
 using IAMS.Domain.Enums;
+using IAMS.Domain.Events;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,11 +23,13 @@ internal sealed class ApproveAuditPlanCommandHandler : IRequestHandler<ApproveAu
 {
     private readonly IApplicationDbContext _db;
     private readonly IAuditService _audit;
+    private readonly IPublisher _publisher;
 
-    public ApproveAuditPlanCommandHandler(IApplicationDbContext db, IAuditService audit)
+    public ApproveAuditPlanCommandHandler(IApplicationDbContext db, IAuditService audit, IPublisher publisher)
     {
         _db = db;
         _audit = audit;
+        _publisher = publisher;
     }
 
     public async Task Handle(ApproveAuditPlanCommand request, CancellationToken cancellationToken)
@@ -43,5 +46,7 @@ internal sealed class ApproveAuditPlanCommandHandler : IRequestHandler<ApproveAu
         await _db.SaveChangesAsync(cancellationToken);
         await _audit.LogAsync("AuditPlan.Approved", nameof(AuditPlan), plan.Id.ToString(),
             oldValues: "Submitted", newValues: "Approved", cancellationToken: cancellationToken);
+
+        await _publisher.Publish(new AuditPlanApprovedEvent(plan.Id, plan.Title), cancellationToken);
     }
 }

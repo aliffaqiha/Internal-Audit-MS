@@ -1,6 +1,8 @@
 using System.Reflection;
 using FluentValidation;
 using IAMS.Application.Common.Behaviors;
+using IAMS.Application.Common.Interfaces;
+using IAMS.Application.Notifications;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,6 +17,8 @@ public static class DependencyInjection
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
         services.AddValidatorsFromAssembly(assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+        services.AddScoped<INotificationService, NotificationService>();
 
         return services;
     }

@@ -97,10 +97,10 @@
 
 **Goal:** Traceability & notifikasi otomatis.
 
-- [ ] AuditTrail: user, action, date, IP, old value, new value (untuk entity penting)
-- [ ] Notification entity + SignalR (realtime in-app)
-- [ ] Email notification via SMTP (async background)
-- [ ] Trigger: Finding Assigned, CAP Due Tomorrow, CAP Overdue, Audit Approved
+- [x] AuditTrail: user, action, date, IP, old value, new value (untuk entity penting)
+- [x] Notification entity + SignalR (realtime in-app)
+- [x] Email notification via SMTP (async background)
+- [x] Trigger: Finding Assigned, CAP Due Tomorrow, CAP Overdue, Audit Approved
 
 **DOD:** Setiap perubahan penting tercatat; user menerima notifikasi in-app realtime + email.
 

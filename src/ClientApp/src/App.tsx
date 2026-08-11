@@ -5,6 +5,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { AdminLayout } from "@/features/admin/AdminLayout"
 import { DepartmentsPage } from "@/features/admin/DepartmentsPage"
 import { UsersPage } from "@/features/admin/UsersPage"
+import { AuditLogsPage } from "@/features/audit-logs/AuditLogsPage"
 import { AuditPlanDetailPage } from "@/features/audit/AuditPlanDetailPage"
 import { AuditPlansPage } from "@/features/audit/AuditPlansPage"
 import { AuthProvider } from "@/features/auth/auth-context"
@@ -47,6 +48,15 @@ function App() {
                   <>
                     <AdminRoute />
                     <DepartmentsPage />
+                  </>
+                }
+              />
+              <Route
+                path="/admin/audit-logs"
+                element={
+                  <>
+                    <AdminRoute />
+                    <AuditLogsPage />
                   </>
                 }
               />

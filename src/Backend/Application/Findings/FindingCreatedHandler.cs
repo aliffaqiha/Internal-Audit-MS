@@ -1,4 +1,5 @@
 using IAMS.Application.Common.Interfaces;
+using IAMS.Application.Notifications;
 using IAMS.Domain.Entities;
 using IAMS.Domain.Enums;
 using IAMS.Domain.Events;
@@ -8,22 +9,27 @@ using Microsoft.EntityFrameworkCore;
 namespace IAMS.Application.Findings;
 
 /// <summary>
-/// Reacts to <see cref="FindingCreatedEvent"/>: notifies the affected auditees in the
-/// finding's department (via the email service, which logs in dev) and records an
-/// audit trail entry. Keeping this side-effect out of the create handler keeps the
-/// command focused and side effects decoupled.
+/// Reacts to <see cref="FindingCreatedEvent"/>: raises an in-app notification and an
+/// email for the affected auditees in the finding's department. Keeping this side-effect
+/// out of the create handler keeps the command focused and side effects decoupled.
 /// </summary>
 internal sealed class FindingCreatedHandler : INotificationHandler<FindingCreatedEvent>
 {
     private readonly IApplicationDbContext _db;
     private readonly IEmailService _email;
     private readonly IAuditService _audit;
+    private readonly INotificationService _notifications;
 
-    public FindingCreatedHandler(IApplicationDbContext db, IEmailService email, IAuditService audit)
+    public FindingCreatedHandler(
+        IApplicationDbContext db,
+        IEmailService email,
+        IAuditService audit,
+        INotificationService notifications)
     {
         _db = db;
         _email = email;
         _audit = audit;
+        _notifications = notifications;
     }
 
     public async Task Handle(FindingCreatedEvent notification, CancellationToken cancellationToken)
@@ -40,12 +46,19 @@ internal sealed class FindingCreatedHandler : INotificationHandler<FindingCreate
             .Where(u => u.DepartmentId == notification.DepartmentId
                         && u.IsActive
                         && u.UserRoles.Any(ur => ur.Role.NormalizedName == RoleConstants.Normalize(RoleConstants.Auditee)))
-            .Select(u => new { u.Email, u.FullName })
+            .Select(u => new { u.Id, u.Email, u.FullName })
             .ToListAsync(cancellationToken);
+
+        if (recipients.Count == 0)
+        {
+            await _audit.LogAsync("Notification.Skipped", nameof(Finding), notification.FindingId.ToString(),
+                newValues: "no auditee recipients", cancellationToken: cancellationToken);
+            return;
+        }
 
         var riskLabel = notification.RiskLevel.ToString();
         var subject = $"[IAMS] Temuan baru: {notification.Title}";
-        var body =
+        var message =
             $"Temuan audit berisiko {riskLabel} telah dicatat untuk departemen Anda.\n\n" +
             $"Judul: {notification.Title}\n" +
             (notification.DueDate.HasValue
@@ -54,7 +67,16 @@ internal sealed class FindingCreatedHandler : INotificationHandler<FindingCreate
             "\nSilakan lihat detail temuan pada aplikasi Internal Audit.";
 
         foreach (var recipient in recipients)
-            await _email.SendAsync(recipient.Email, subject, body, cancellationToken);
+        {
+            await _email.SendAsync(recipient.Email, subject, message, cancellationToken);
+            await _notifications.SendAsync(
+                new[] { recipient.Id },
+                NotificationType.FindingAssigned,
+                "Temuan baru untuk departemen Anda",
+                $"Temuan berisiko {riskLabel} dicatat: {notification.Title}",
+                $"/findings/{notification.FindingId}",
+                cancellationToken: cancellationToken);
+        }
 
         await _audit.LogAsync("Notification.Sent", nameof(Finding), notification.FindingId.ToString(),
             newValues: $"auditees_notified={recipients.Count}",

@@ -1,4 +1,5 @@
 using IAMS.Api.Authorization;
+using IAMS.Api.Hubs;
 using IAMS.Api.Middleware;
 using IAMS.Api.Services;
 using IAMS.Application;
@@ -55,9 +56,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SecretKey)),
             ClockSkew = TimeSpan.FromSeconds(30)
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            // SignalR clients pass the JWT via the query string (WebSockets can't set headers).
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/notifications"))
+                    context.Token = accessToken;
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
+builder.Services.AddScoped<IAMS.Application.Common.Interfaces.INotificationNotifier, SignalRNotificationNotifier>();
+
 builder.Services.AddAuthorization(options => options.Register());
+
+builder.Services.AddSignalR();
 
 // Rate limiting (anti brute-force)
 builder.Services.AddRateLimiter(options =>
@@ -125,6 +144,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health");
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
 

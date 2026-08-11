@@ -1,5 +1,7 @@
 using IAMS.Application.Common.Interfaces;
+using IAMS.Application.Notifications;
 using IAMS.Infrastructure.Common;
+using IAMS.Infrastructure.Emails;
 using IAMS.Infrastructure.Persistence;
 using IAMS.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -26,13 +28,27 @@ public static class DependencyInjection
         services.AddScoped<IDateTimeService, DateTimeService>();
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<MinioOptions>(configuration.GetSection(MinioOptions.SectionName));
+        services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
+        services.Configure<ReminderOptions>(configuration.GetSection(ReminderOptions.SectionName));
 
         services.AddScoped<ITokenProvider, JwtTokenProvider>();
         services.AddScoped<IPasswordHasher, PasswordHasherService>();
-        services.AddScoped<IEmailService, LogEmailService>();
         services.AddScoped<IAuditService, AuditService>();
 
-        services.Configure<MinioOptions>(configuration.GetSection(MinioOptions.SectionName));
+        // Async email pipeline: enqueue immediately, deliver in the background.
+        services.AddSingleton<IEmailQueue, EmailQueue>();
+        services.AddScoped<IEmailService, QueuedEmailService>();
+        services.AddSingleton<IEmailDispatcher, EmailDispatcher>();
+        services.AddHostedService<EmailBackgroundService>();
+
+        // In-app notifications.
+        services.AddScoped<INotificationService, NotificationService>();
+
+        // CAP due/overdue reminders (periodic + on demand).
+        services.AddSingleton<ICapReminderService, CapReminderService>();
+        services.AddHostedService(sp => (Microsoft.Extensions.Hosting.BackgroundService)sp.GetRequiredService<ICapReminderService>());
+
         services.AddSingleton<IObjectStorageService, ObjectStorageService>();
 
         return services;

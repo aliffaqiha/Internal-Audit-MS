@@ -1,8 +1,9 @@
-import { Building2, ClipboardCheck, ClipboardList, FileWarning, LayoutDashboard, LogOut, ShieldCheck, Users } from "lucide-react"
+import { Building2, ClipboardCheck, ClipboardList, FileWarning, History, LayoutDashboard, LogOut, ShieldCheck, Users } from "lucide-react"
 import { NavLink, Outlet, useNavigate } from "react-router-dom"
 
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/features/auth/auth-context"
+import { NotificationBell } from "@/features/notifications/NotificationBell"
 import { cn } from "@/lib/utils"
 
 const plannerRoles = ["Auditor", "AuditManager", "Administrator"]
@@ -16,6 +17,7 @@ const allNavItems = [
   { to: "/caps", label: "CAP", icon: ClipboardCheck, roles: capRoles },
   { to: "/admin/users", label: "Pengguna", icon: Users, roles: adminRoles },
   { to: "/admin/departments", label: "Departemen", icon: Building2, roles: adminRoles },
+  { to: "/admin/audit-logs", label: "Jejak Audit", icon: History, roles: adminRoles },
 ]
 
 export function AdminLayout() {
@@ -58,6 +60,7 @@ export function AdminLayout() {
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-3">
+            <NotificationBell />
             <div className="hidden text-right text-xs leading-tight sm:block">
               <div className="font-medium text-foreground">{user?.fullName}</div>
               <div className="text-muted-foreground">{user?.roles.join(", ")}</div>
