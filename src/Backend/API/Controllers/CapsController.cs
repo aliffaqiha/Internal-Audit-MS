@@ -82,7 +82,7 @@ public sealed class CapsController : ControllerBase
     [Authorize(Policy = Policies.CapEditor)]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> UploadAttachment(Guid id, [FromForm] IFormFile file, CancellationToken ct)
+    public async Task<IActionResult> UploadAttachment(Guid id, IFormFile file, CancellationToken ct)
     {
         if (file is null || file.Length == 0)
             return BadRequest(new { message = "File lampiran wajib dipilih." });

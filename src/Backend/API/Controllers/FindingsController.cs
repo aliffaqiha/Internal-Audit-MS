@@ -63,7 +63,7 @@ public sealed class FindingsController : ControllerBase
     [Authorize(Policy = Policies.FindingManager)]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
-    public async Task<ActionResult<Guid>> UploadEvidence(Guid id, [FromForm] IFormFile file, CancellationToken ct)
+    public async Task<ActionResult<Guid>> UploadEvidence(Guid id, IFormFile file, CancellationToken ct)
     {
         if (file is null || file.Length == 0)
             return BadRequest(new { message = "File bukti wajib dipilih." });

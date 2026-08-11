@@ -99,8 +99,8 @@ export function UserFormDialog({
     }
   }, [open, user, reset])
 
-  const selectedRoles = watch("roleIds")
-  const isActive = watch("isActive")
+  const selectedRoles = watch("roleIds") ?? []
+  const isActive = watch("isActive") ?? true
 
   const toggleRole = (roleId: string) => {
     const next = selectedRoles.includes(roleId)
