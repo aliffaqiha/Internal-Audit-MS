@@ -25,6 +25,17 @@ public static class DependencyInjection
 
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
+        // Distributed cache backed by Redis (dashboard analytics, future hot paths).
+        var redis = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrWhiteSpace(redis))
+        {
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redis;
+                options.InstanceName = "iams:";
+            });
+        }
+
         services.AddScoped<IDateTimeService, DateTimeService>();
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));

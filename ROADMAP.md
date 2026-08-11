@@ -123,7 +123,7 @@
 
 **Goal:** Nilai jual utama — insight manajemen.
 
-- [ ] Query analytics (efisien, cacheable via Redis):
+- [x] Query analytics (efisien, cacheable via Redis):
   - Audit Progress (% vs total)
   - Finding by Risk
   - Finding by Department
@@ -133,8 +133,8 @@
   - Rata-rata waktu penyelesaian finding
   - Jumlah audit per auditor
   - Distribusi status audit
-- [ ] Visualisasi grafik (recharts / chart library)
-- [ ] Redis cache untuk query dashboard
+- [x] Visualisasi grafik (recharts / chart library)
+- [x] Redis cache untuk query dashboard
 
 **DOD:** Dashboard manajemen realtime, informatif, dan cepat.
 

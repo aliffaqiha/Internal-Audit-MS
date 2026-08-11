@@ -26,7 +26,8 @@ public static class Policies
         options.AddPolicy(TopManagement, p => p.RequireRole(Domain.Enums.RoleConstants.TopManagement));
         options.AddPolicy(DashboardView, p => p.RequireRole(
             Domain.Enums.RoleConstants.TopManagement,
-            Domain.Enums.RoleConstants.Manager));
+            Domain.Enums.RoleConstants.Manager,
+            Domain.Enums.RoleConstants.Administrator));
 
         // Audit planning workflow participants.
         options.AddPolicy(AuditPlanner, p => p.RequireRole(

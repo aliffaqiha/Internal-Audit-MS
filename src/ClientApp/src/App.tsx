@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 
 import { AdminRoute } from "@/components/AdminRoute"
@@ -10,12 +11,15 @@ import { AuditPlanDetailPage } from "@/features/audit/AuditPlanDetailPage"
 import { AuditPlansPage } from "@/features/audit/AuditPlansPage"
 import { AuthProvider } from "@/features/auth/auth-context"
 import { ForgotPasswordPage } from "@/features/auth/ForgotPasswordPage"
-import { HomePage } from "@/features/auth/HomePage"
 import { LoginPage } from "@/features/auth/LoginPage"
 import { ResetPasswordPage } from "@/features/auth/ResetPasswordPage"
 import { CapsPage } from "@/features/caps/CapsPage"
 import { FindingDetailPage } from "@/features/findings/FindingDetailPage"
 import { FindingsPage } from "@/features/findings/FindingsPage"
+
+const DashboardPage = lazy(() =>
+  import("@/features/dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage }))
+)
 
 function App() {
   return (
@@ -27,7 +31,14 @@ function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<AdminLayout />}>
-              <Route path="/" element={<HomePage />} />
+              <Route
+                path="/"
+                element={
+                  <Suspense fallback={<p className="p-10 text-center text-muted-foreground">Memuat...</p>}>
+                    <DashboardPage />
+                  </Suspense>
+                }
+              />
               <Route path="/audits" element={<AuditPlansPage />} />
               <Route path="/audits/:id" element={<AuditPlanDetailPage />} />
               <Route path="/findings" element={<FindingsPage />} />
