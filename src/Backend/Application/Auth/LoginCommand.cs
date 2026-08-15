@@ -24,6 +24,16 @@ internal sealed class LoginCommandHandler : IRequestHandler<LoginCommand, AuthRe
 {
     private static readonly TimeSpan RefreshLifetime = TimeSpan.FromDays(7);
 
+    /// <summary>
+    /// A real PBKDF2 (ASP.NET Identity format) hash used to equalize response time when
+    /// the account does not exist, preventing user enumeration via timing.
+    /// </summary>
+    private const string TimingEqualizationHash =
+        "AQEAAACghgEAEAAAAN+AioocHSFS75qQc3eOIj1O/9UmYe4pkQPX7NC2UBPEBf46YwK8iL44AV8o6A44Qg==";
+
+    private const int MaxFailedAttempts = 5;
+    private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
+
     private readonly IApplicationDbContext _db;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITokenProvider _tokenProvider;
@@ -54,10 +64,35 @@ internal sealed class LoginCommandHandler : IRequestHandler<LoginCommand, AuthRe
                 u => u.NormalizedUsername == normalized || u.NormalizedEmail == normalized,
                 cancellationToken);
 
-        if (user is null || !_passwordHasher.Verify(request.Password, user.PasswordHash))
+        if (user is null)
         {
+            // Run a real PBKDF2 verify so timing does not reveal whether the account exists.
+            _passwordHasher.Verify(request.Password, TimingEqualizationHash);
+
             await _audit.LogAsync("Login.Failed", nameof(User), null, newValues: "Invalid credentials",
                 cancellationToken: cancellationToken);
+            throw new UnauthorizedAccessException("Invalid username or password.");
+        }
+
+        if (user.LockoutEndUtc.HasValue && user.LockoutEndUtc > DateTimeOffset.UtcNow)
+        {
+            await _audit.LogAsync("Login.Failed", nameof(User), user.Id.ToString(),
+                newValues: "Account locked", cancellationToken: cancellationToken);
+            throw new UnauthorizedAccessException("Invalid username or password.");
+        }
+
+        if (!_passwordHasher.Verify(request.Password, user.PasswordHash))
+        {
+            user.FailedLoginCount++;
+            if (user.FailedLoginCount >= MaxFailedAttempts)
+            {
+                user.LockoutEndUtc = DateTimeOffset.UtcNow.Add(LockoutDuration);
+                user.FailedLoginCount = 0;
+            }
+
+            await _db.SaveChangesAsync(cancellationToken);
+            await _audit.LogAsync("Login.Failed", nameof(User), user.Id.ToString(),
+                newValues: "Invalid credentials", cancellationToken: cancellationToken);
             throw new UnauthorizedAccessException("Invalid username or password.");
         }
 
@@ -68,6 +103,8 @@ internal sealed class LoginCommandHandler : IRequestHandler<LoginCommand, AuthRe
             throw new UnauthorizedAccessException("Account is disabled.");
         }
 
+        user.FailedLoginCount = 0;
+        user.LockoutEndUtc = null;
         user.LastLoginAt = DateTimeOffset.UtcNow;
 
         var roles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
@@ -92,7 +129,7 @@ internal sealed class LoginCommandHandler : IRequestHandler<LoginCommand, AuthRe
             access.Token,
             access.ExpiresAt,
             refresh,
-            new AuthUserResponse(user.Id, user.Email, user.FullName, roles));
+            new AuthUserResponse(user.Id, user.Email, user.FullName, roles, user.MustChangePassword));
     }
 }
 

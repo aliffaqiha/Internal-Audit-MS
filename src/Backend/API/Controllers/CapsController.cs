@@ -82,6 +82,7 @@ public sealed class CapsController : ControllerBase
     [HttpPost("{id:guid}/attachment")]
     [Authorize(Policy = Policies.CapEditor)]
     [Consumes("multipart/form-data")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> UploadAttachment(Guid id, IFormFile file, CancellationToken ct)
     {

@@ -68,6 +68,17 @@ public sealed class AuthController : ControllerBase
         return Accepted();
     }
 
+    [HttpPost("change-password")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword(ChangePasswordCommand command, CancellationToken ct)
+    {
+        await _sender.Send(command, ct);
+        ClearRefreshCookie();
+        return NoContent();
+    }
+
     [HttpPost("reset-password")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -91,7 +102,7 @@ public sealed class AuthController : ControllerBase
         var options = new CookieOptions
         {
             HttpOnly = true,
-            Secure = Request.IsHttps,
+            Secure = _jwt.SecureCookie,
             SameSite = SameSiteMode.Lax,
             Path = RefreshCookiePath,
             MaxAge = TimeSpan.FromDays(_jwt.RefreshTokenDays),
@@ -116,7 +127,7 @@ public sealed class AuthController : ControllerBase
             Response.Cookies.Delete(RefreshCookieName, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = Request.IsHttps,
+                Secure = _jwt.SecureCookie,
                 SameSite = SameSiteMode.Lax,
                 Path = RefreshCookiePath
             });

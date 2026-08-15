@@ -1,3 +1,4 @@
+using IAMS.Application.Common.Exceptions;
 using IAMS.Application.Common.Interfaces;
 using IAMS.Domain.Entities;
 using IAMS.Domain.Enums;
@@ -60,9 +61,15 @@ public static class CurrentUserAccess
             ? query
             : query.Where(c => c.Finding != null && c.Finding.DepartmentId == scope.DepartmentId);
 
+    public static IQueryable<AuditPlan> RestrictPlans(
+        this IQueryable<AuditPlan> query, UserAccessScope scope)
+        => scope.HasFullAccess
+            ? query
+            : query.Where(p => p.DepartmentId == scope.DepartmentId);
+
     /// <summary>
     /// Ensures a restricted user (e.g. Auditee) can act on a finding in their own department.
-    /// Throws <see cref="UnauthorizedAccessException"/> when the finding belongs to another department.
+    /// Throws <see cref="ForbiddenAccessException"/> when the finding belongs to another department.
     /// </summary>
     public static void EnsureCanAccessFinding(UserAccessScope scope, Guid? findingDepartmentId)
     {
@@ -70,6 +77,19 @@ public static class CurrentUserAccess
             return;
 
         if (findingDepartmentId != scope.DepartmentId)
-            throw new UnauthorizedAccessException("Anda tidak memiliki akses ke data di luar departemen Anda.");
+            throw new ForbiddenAccessException("Anda tidak memiliki akses ke data di luar departemen Anda.");
+    }
+
+    /// <summary>
+    /// Ensures a restricted user (e.g. Auditee) can view an audit plan in their own department.
+    /// Throws <see cref="ForbiddenAccessException"/> when the plan belongs to another department.
+    /// </summary>
+    public static void EnsureCanAccessPlan(UserAccessScope scope, Guid? planDepartmentId)
+    {
+        if (scope.HasFullAccess)
+            return;
+
+        if (planDepartmentId != scope.DepartmentId)
+            throw new ForbiddenAccessException("Anda tidak memiliki akses ke data di luar departemen Anda.");
     }
 }

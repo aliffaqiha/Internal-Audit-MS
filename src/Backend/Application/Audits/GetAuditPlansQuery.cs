@@ -1,4 +1,5 @@
 using IAMS.Application.Common;
+using IAMS.Application.Common.DataScoping;
 using IAMS.Application.Common.Interfaces;
 using IAMS.Domain.Enums;
 using MediatR;
@@ -15,16 +16,20 @@ public sealed record GetAuditPlansQuery(
 internal sealed class GetAuditPlansQueryHandler : IRequestHandler<GetAuditPlansQuery, PagedResult<AuditPlanDto>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetAuditPlansQueryHandler(IApplicationDbContext db)
+    public GetAuditPlansQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<PagedResult<AuditPlanDto>> Handle(
         GetAuditPlansQuery request, CancellationToken cancellationToken)
     {
-        var query = _db.AuditPlans.AsNoTracking();
+        var scope = await CurrentUserAccess.ResolveAsync(_db, _currentUser, cancellationToken);
+
+        var query = _db.AuditPlans.AsNoTracking().RestrictPlans(scope);
 
         if (request.Status.HasValue)
             query = query.Where(p => p.Status == request.Status);

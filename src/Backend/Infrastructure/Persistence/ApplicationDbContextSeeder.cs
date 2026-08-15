@@ -6,14 +6,15 @@ namespace IAMS.Infrastructure.Persistence;
 
 /// <summary>
 /// Idempotent seeder that creates the system roles, default departments
-/// and a default administrator account on first startup.
+/// and (in development/testing only) a default administrator account.
 /// </summary>
 public static class ApplicationDbSeeder
 {
-    public static async Task SeedAsync(ApplicationDbContext context)
+    public static async Task SeedAsync(ApplicationDbContext context, bool includeDefaultAdmin)
     {
         await SeedRolesAndDepartmentsAsync(context);
-        await SeedDefaultAdminAsync(context);
+        if (includeDefaultAdmin)
+            await SeedDefaultAdminAsync(context);
     }
 
     private static async Task SeedRolesAndDepartmentsAsync(ApplicationDbContext context)

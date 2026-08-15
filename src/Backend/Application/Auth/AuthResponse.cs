@@ -4,7 +4,8 @@ public sealed record AuthUserResponse(
     Guid Id,
     string Email,
     string FullName,
-    IReadOnlyList<string> Roles);
+    IReadOnlyList<string> Roles,
+    bool MustChangePassword);
 
 public sealed record AuthResponse(
     string AccessToken,

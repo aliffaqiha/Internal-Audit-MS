@@ -46,20 +46,37 @@ internal sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenC
             .FirstOrDefaultAsync(t => t.TokenHash == hash, cancellationToken)
             ?? throw new UnauthorizedAccessException("Invalid refresh token.");
 
-        if (!token.IsActive)
+        if (token.RevokedAt.HasValue)
+        {
+            // A revoked token was presented again - either the token was reused (theft)
+            // or an old token is being replayed. Invalidate every active token of the user.
+            var family = await _db.RefreshTokens
+                .Where(t => t.UserId == token.UserId && t.RevokedAt == null)
+                .ToListAsync(cancellationToken);
+            foreach (var t in family)
+                t.RevokedAt = DateTimeOffset.UtcNow;
+
+            await _db.SaveChangesAsync(cancellationToken);
+            await _audit.LogAsync("Token.ReuseDetected", nameof(RefreshToken), token.Id.ToString(),
+                cancellationToken: cancellationToken);
+            throw new UnauthorizedAccessException("Refresh token is no longer active.");
+        }
+
+        if (token.ExpiresAt <= DateTime.UtcNow)
             throw new UnauthorizedAccessException("Refresh token is no longer active.");
 
         var user = token.User;
         if (!user.IsActive)
             throw new UnauthorizedAccessException("Account is disabled.");
 
-        // Rotation: revoke the old token and issue a new one.
-        token.RevokedAt = DateTimeOffset.UtcNow;
-        token.ReplacedByToken = Guid.NewGuid().ToString("N")[..16];
-
         var roles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
         var access = _tokenProvider.CreateAccessToken(user, roles);
         var refresh = _tokenProvider.CreateRefreshToken();
+
+        // Rotation: revoke the old token and record the hash of its successor so a
+        // replayed token can be detected and the whole family revoked.
+        token.RevokedAt = DateTimeOffset.UtcNow;
+        token.ReplacedByToken = TokenHasher.Hash(refresh);
 
         _db.RefreshTokens.Add(new RefreshToken
         {
@@ -79,6 +96,6 @@ internal sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenC
             access.Token,
             access.ExpiresAt,
             refresh,
-            new AuthUserResponse(user.Id, user.Email, user.FullName, roles));
+            new AuthUserResponse(user.Id, user.Email, user.FullName, roles, user.MustChangePassword));
     }
 }

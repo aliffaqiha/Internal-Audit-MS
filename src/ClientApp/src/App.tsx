@@ -6,6 +6,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { Toaster } from "@/components/ui/toast"
 import { AdminLayout } from "@/features/admin/AdminLayout"
 import { AuthProvider } from "@/features/auth/auth-context"
+import { ChangePasswordPage } from "@/features/auth/ChangePasswordPage"
 import { ForgotPasswordPage } from "@/features/auth/ForgotPasswordPage"
 import { LoginPage } from "@/features/auth/LoginPage"
 import { ResetPasswordPage } from "@/features/auth/ResetPasswordPage"
@@ -51,6 +52,7 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<ProtectedRoute />}>
+            <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route element={<AdminLayout />}>
               <Route
                 path="/"

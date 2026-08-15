@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using IAMS.Application.Common.Exceptions;
 using ValidationException = IAMS.Application.Common.Exceptions.ValidationException;
 
 namespace IAMS.Api.Middleware;
@@ -39,6 +40,10 @@ public sealed class ExceptionHandlingMiddleware
             ValidationException ve => (
                 StatusCodes.Status400BadRequest,
                 new { message = "Validation failed.", errors = ve.Errors }),
+
+            ForbiddenAccessException => (
+                StatusCodes.Status403Forbidden,
+                new { message = exception.Message } as object),
 
             UnauthorizedAccessException => (
                 StatusCodes.Status401Unauthorized,

@@ -43,4 +43,16 @@ npm run dev
 - MinIO console: http://localhost:9001
 - Jaeger: http://localhost:16686
 
-Default admin: `admin` / `Admin@1234`
+Default admin (Development/Testing only): `admin` / `Admin@1234` — harus diganti saat login pertama.
+
+## Konfigurasi (env)
+
+API gagal berhenti saat startup jika variabel berikut tidak diisi:
+
+| Variabel | Keterangan |
+| --- | --- |
+| `DATABASE_URL` | Connection string PostgreSQL |
+| `JWT_SECRET_KEY` | Minimal 32 karakter |
+| `MINIO_ENDPOINT` / `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | Object storage |
+
+Di belakang reverse proxy, isi `ForwardedHeaders:KnownProxies` / `KnownNetworks` agar `X-Forwarded-For`/`-Proto` dipercaya (default: dinonaktifkan).

@@ -63,6 +63,7 @@ public sealed class FindingsController : ControllerBase
     [HttpPost("{id:guid}/evidence")]
     [Authorize(Policy = Policies.FindingManager)]
     [Consumes("multipart/form-data")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     public async Task<ActionResult<Guid>> UploadEvidence(Guid id, IFormFile file, CancellationToken ct)
     {

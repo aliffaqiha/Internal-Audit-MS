@@ -14,6 +14,12 @@ public sealed class User : BaseEntity
     public bool MustChangePassword { get; set; } = true;
     public DateTimeOffset? LastLoginAt { get; set; }
 
+    /// <summary>Consecutive failed logins used for the per-account lockout policy.</summary>
+    public int FailedLoginCount { get; set; }
+
+    /// <summary>When set, login attempts are rejected until this point in time.</summary>
+    public DateTimeOffset? LockoutEndUtc { get; set; }
+
     public Guid? DepartmentId { get; set; }
     public Department? Department { get; set; }
 

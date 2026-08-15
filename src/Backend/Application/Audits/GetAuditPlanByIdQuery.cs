@@ -1,3 +1,4 @@
+using IAMS.Application.Common.DataScoping;
 using IAMS.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -9,14 +10,18 @@ public sealed record GetAuditPlanByIdQuery(Guid Id) : IRequest<AuditPlanDto>;
 internal sealed class GetAuditPlanByIdQueryHandler : IRequestHandler<GetAuditPlanByIdQuery, AuditPlanDto>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetAuditPlanByIdQueryHandler(IApplicationDbContext db)
+    public GetAuditPlanByIdQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<AuditPlanDto> Handle(GetAuditPlanByIdQuery request, CancellationToken cancellationToken)
     {
+        var scope = await CurrentUserAccess.ResolveAsync(_db, _currentUser, cancellationToken);
+
         var plan = await _db.AuditPlans.AsNoTracking()
             .Where(p => p.Id == request.Id)
             .Select(p => new AuditPlanDto(
@@ -39,6 +44,8 @@ internal sealed class GetAuditPlanByIdQueryHandler : IRequestHandler<GetAuditPla
                     i.Id, i.Question, i.Category, i.IsRequired, i.Status, i.Note)).ToList()))
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new KeyNotFoundException("Rencana audit tidak ditemukan.");
+
+        CurrentUserAccess.EnsureCanAccessPlan(scope, plan.DepartmentId);
 
         return plan;
     }

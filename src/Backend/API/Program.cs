@@ -12,6 +12,7 @@ using IAMS.Infrastructure.Common;
 using IAMS.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -20,6 +21,30 @@ using System.Text;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Fail-fast configuration validation: never boot with literal "${...}" placeholders.
+if (builder.Environment.EnvironmentName != "Testing")
+{
+    var requiredSettings = new[]
+    {
+        "ConnectionStrings:DefaultConnection",
+        "ConnectionStrings:Redis",
+        "Jwt:SecretKey",
+        "Minio:Endpoint",
+        "Minio:AccessKey",
+        "Minio:SecretKey"
+    };
+
+    foreach (var key in requiredSettings)
+    {
+        var value = builder.Configuration[key];
+        if (string.IsNullOrWhiteSpace(value) || value.Contains("${", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Configuration '{key}' is missing. Set the corresponding environment variable before starting.");
+        }
+    }
+}
 
 // Serilog
 builder.Host.UseSerilog((context, services, configuration) =>
@@ -166,16 +191,46 @@ builder.Services.AddCors(options =>
             .AllowCredentials());
 });
 
+// Forwarded headers are only trusted when known proxies/networks are configured.
+// Secure by default: with no configuration, forwarded headers are ignored entirely
+// so a client cannot spoof X-Forwarded-For/-Proto to bypass rate limiting or TLS detection.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    var knownProxies = builder.Configuration.GetSection("ForwardedHeaders:KnownProxies")
+        .Get<string[]>() ?? Array.Empty<string>();
+    var knownNetworks = builder.Configuration.GetSection("ForwardedHeaders:KnownNetworks")
+        .Get<string[]>() ?? Array.Empty<string>();
+
+    if (knownProxies.Length == 0 && knownNetworks.Length == 0)
+    {
+        options.ForwardedHeaders = ForwardedHeaders.None;
+        return;
+    }
+
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    foreach (var proxy in knownProxies)
+        options.KnownProxies.Add(System.Net.IPAddress.Parse(proxy));
+
+    foreach (var network in knownNetworks)
+    {
+        var parts = network.Split('/');
+        options.KnownIPNetworks.Add(
+            new System.Net.IPNetwork(System.Net.IPAddress.Parse(parts[0]), int.Parse(parts[1])));
+    }
+});
+
 var app = builder.Build();
 
-// Apply migrations and seed data
+// Apply migrations and seed data (default admin is only seeded in Development/Testing)
 if (app.Environment.EnvironmentName != "Testing")
 {
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         await db.Database.MigrateAsync();
-        await ApplicationDbSeeder.SeedAsync(db);
+        await ApplicationDbSeeder.SeedAsync(
+            db,
+            includeDefaultAdmin: app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Testing");
     }
 }
 
@@ -186,9 +241,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseForwardedHeaders();
+app.UseSecurityHeaders();
 app.UseSerilogRequestLogging();
 app.UseExceptionHandling();
 app.UseRateLimiter();
+
+if (!app.Environment.IsDevelopment())
+    app.UseHsts();
 
 app.UseHttpsRedirection();
 app.UseCors("ClientApp");

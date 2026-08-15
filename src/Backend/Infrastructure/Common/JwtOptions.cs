@@ -15,4 +15,10 @@ public sealed class JwtOptions
     /// being returned in the response body (XSS-resistant).
     /// </summary>
     public bool RefreshTokenCookie { get; set; } = true;
+
+    /// <summary>
+    /// Marks the refresh cookie Secure (HTTPS-only). Keep true unless the app is
+    /// intentionally served over plain HTTP (e.g. local development).
+    /// </summary>
+    public bool SecureCookie { get; set; } = true;
 }

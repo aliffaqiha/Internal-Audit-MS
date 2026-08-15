@@ -29,8 +29,9 @@ public sealed class EmailDispatcher : IEmailDispatcher
     {
         if (!_options.IsConfigured)
         {
-            _logger.LogInformation("Email (logged, SMTP not configured) -> To={To} | Subject={Subject} | Body={Body}",
-                message.To, message.Subject, message.Body);
+            // Never log the body - it may contain password reset tokens or other secrets.
+            _logger.LogInformation("Email (logged, SMTP not configured) -> To={To} | Subject={Subject}",
+                message.To, message.Subject);
             return;
         }
 

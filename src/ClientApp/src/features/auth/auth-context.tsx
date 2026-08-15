@@ -16,6 +16,7 @@ interface AuthContextValue {
   isAuthenticated: boolean
   isLoading: boolean
   login: (emailOrUsername: string, password: string) => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -54,9 +55,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    await authApi.changePassword(currentPassword, newPassword)
+    tokenStore.clear()
+    setUser(null)
+  }, [])
+
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: Boolean(user), isLoading, login, logout }}
+      value={{ user, isAuthenticated: Boolean(user), isLoading, login, changePassword, logout }}
     >
       {children}
     </AuthContext.Provider>
