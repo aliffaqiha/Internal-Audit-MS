@@ -11,7 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Pagination } from "@/components/ui/pagination"
 import { Select } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -28,12 +30,14 @@ import { AuditPlanStatusLabels } from "@/features/audit/types"
 import { adminApi } from "@/features/admin/admin-api"
 
 const plannerRoles = ["Auditor", "AuditManager", "Administrator"]
+const PAGE_SIZE = 15
 
 export function AuditPlansPage() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [statusFilter, setStatusFilter] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [page, setPage] = useState(1)
 
   const isPlanner = user?.roles.some((r) => plannerRoles.includes(r)) ?? false
 
@@ -59,6 +63,11 @@ export function AuditPlansPage() {
     "Completed",
   ]
 
+  const handleStatusFilter = (v: string) => { setStatusFilter(v); setPage(1) }
+
+  const allPlans = plans.data ?? []
+  const paged = allPlans.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -80,7 +89,7 @@ export function AuditPlansPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <div className="w-44">
-              <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <Select value={statusFilter} onChange={(e) => handleStatusFilter(e.target.value)}>
                 <option value="">Semua Status</option>
                 {statusOrder.map((s) => (
                   <option key={s} value={s}>
@@ -91,62 +100,74 @@ export function AuditPlansPage() {
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          {plans.isLoading ? (
-            <p className="p-6 text-center text-muted-foreground">Memuat data...</p>
-          ) : (plans.data ?? []).length === 0 ? (
-            <div className="grid place-items-center gap-2 p-10 text-center text-muted-foreground">
-              <ClipboardList className="size-8" />
-              <p>Belum ada rencana audit.</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Judul</TableHead>
-                  <TableHead>Standar</TableHead>
-                  <TableHead>Departemen</TableHead>
-                  <TableHead>Jadwal</TableHead>
-                  <TableHead>Tim</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(plans.data ?? []).map((plan: AuditPlanDto) => (
-                  <TableRow key={plan.id} className="cursor-pointer">
-                    <TableCell>
-                      <Link
-                        to={`/audits/${plan.id}`}
-                        className="font-medium hover:text-primary"
-                      >
-                        {plan.title}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{plan.standard ?? "—"}</TableCell>
-                    <TableCell>{plan.departmentName ?? "—"}</TableCell>
-                    <TableCell className="whitespace-nowrap text-xs">
-                      {plan.startDate ? new Date(plan.startDate).toLocaleDateString() : "—"}
-                      {" s/d "}
-                      {plan.endDate ? new Date(plan.endDate).toLocaleDateString() : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex max-w-56 flex-wrap gap-1">
-                        {plan.assignments.map((a) => (
-                          <Badge key={a.userId} variant="secondary">
-                            {a.fullName}
-                          </Badge>
-                        ))}
-                        {plan.assignments.length === 0 && <span className="text-muted-foreground">—</span>}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{AuditPlanStatusLabels[plan.status]}</Badge>
-                    </TableCell>
-                  </TableRow>
+        <CardContent className="grid gap-3">
+          <div className="overflow-x-auto">
+            {plans.isLoading ? (
+              <div className="grid gap-2 p-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full rounded-md" />
                 ))}
-              </TableBody>
-            </Table>
-          )}
+              </div>
+            ) : allPlans.length === 0 ? (
+              <div className="grid place-items-center gap-2 p-10 text-center text-muted-foreground">
+                <ClipboardList className="size-8" />
+                <p>Belum ada rencana audit.</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Judul</TableHead>
+                    <TableHead>Standar</TableHead>
+                    <TableHead>Departemen</TableHead>
+                    <TableHead>Jadwal</TableHead>
+                    <TableHead>Tim</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paged.map((plan: AuditPlanDto) => (
+                    <TableRow key={plan.id} className="cursor-pointer">
+                      <TableCell>
+                        <Link
+                          to={`/audits/${plan.id}`}
+                          className="font-medium hover:text-primary"
+                        >
+                          {plan.title}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{plan.standard ?? "—"}</TableCell>
+                      <TableCell>{plan.departmentName ?? "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {plan.startDate ? new Date(plan.startDate).toLocaleDateString() : "—"}
+                        {" s/d "}
+                        {plan.endDate ? new Date(plan.endDate).toLocaleDateString() : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex max-w-56 flex-wrap gap-1">
+                          {plan.assignments.map((a) => (
+                            <Badge key={a.userId} variant="secondary">
+                              {a.fullName}
+                            </Badge>
+                          ))}
+                          {plan.assignments.length === 0 && <span className="text-muted-foreground">—</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{AuditPlanStatusLabels[plan.status]}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <Pagination
+            page={page}
+            total={allPlans.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
 

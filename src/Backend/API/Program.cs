@@ -168,7 +168,7 @@ if (app.Environment.EnvironmentName != "Testing")
 {
     app.UseHangfireDashboard("/hangfire", new DashboardOptions
     {
-        Authorization = [new HangfireDashboardAuthorizationFilter()],
+        Authorization =  [new HangfireDashboardAuthorizationFilter()],
         AppPath = "/",
         StatsPollingInterval = 5000
     });

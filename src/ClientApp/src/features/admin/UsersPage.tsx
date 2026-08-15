@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Pencil, Plus, Search, Trash2 } from "lucide-react"
 import { useState } from "react"
 
+import { AlertDialog } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,7 +12,9 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Pagination } from "@/components/ui/pagination"
 import { Select } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -24,6 +27,8 @@ import { adminApi } from "@/features/admin/admin-api"
 import { UserFormDialog } from "@/features/admin/UserFormDialog"
 import type { CreateUserPayload, UpdateUserPayload, UserDto } from "@/features/admin/types"
 
+const PAGE_SIZE = 15
+
 export function UsersPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
@@ -31,6 +36,8 @@ export function UsersPage() {
   const [roleFilter, setRoleFilter] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserDto | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<UserDto | null>(null)
+  const [page, setPage] = useState(1)
 
   const users = useQuery({ queryKey: ["users"], queryFn: adminApi.users })
   const roles = useQuery({ queryKey: ["roles"], queryFn: adminApi.roles })
@@ -56,6 +63,7 @@ export function UsersPage() {
     mutationFn: (id: string) => adminApi.deleteUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] })
+      setDeleteTarget(null)
     },
   })
 
@@ -72,6 +80,13 @@ export function UsersPage() {
     return matchesSearch && matchesDepartment && matchesRole
   })
 
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const handleFilterChange = (setter: (v: string) => void) => (v: string) => {
+    setter(v)
+    setPage(1)
+  }
+
   const openCreate = () => {
     setEditingUser(null)
     setDialogOpen(true)
@@ -80,15 +95,6 @@ export function UsersPage() {
   const openEdit = (user: UserDto) => {
     setEditingUser(user)
     setDialogOpen(true)
-  }
-
-  const handleDelete = (user: UserDto) => {
-    const confirmed = window.confirm(
-      `Nonaktifkan akun "${user.username}"? Tindakan ini tidak dapat dibatalkan.`
-    )
-    if (confirmed) {
-      deleteUser.mutate(user.id)
-    }
   }
 
   const handleSubmit = async (payload: CreateUserPayload | UpdateUserPayload) => {
@@ -118,14 +124,14 @@ export function UsersPage() {
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleFilterChange(setSearch)(e.target.value)}
                 placeholder="Cari username, nama, atau email..."
                 className="pl-9"
               />
             </div>
             <Select
               value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
+              onChange={(e) => handleFilterChange(setDepartmentFilter)(e.target.value)}
               className="w-44"
             >
               <option value="">Semua Departemen</option>
@@ -137,7 +143,7 @@ export function UsersPage() {
             </Select>
             <Select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
+              onChange={(e) => handleFilterChange(setRoleFilter)(e.target.value)}
               className="w-40"
             >
               <option value="">Semua Peran</option>
@@ -149,67 +155,79 @@ export function UsersPage() {
             </Select>
           </CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          {users.isLoading ? (
-            <p className="p-6 text-center text-muted-foreground">Memuat data...</p>
-          ) : filtered.length === 0 ? (
-            <p className="p-6 text-center text-muted-foreground">Tidak ada pengguna ditemukan.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Departemen</TableHead>
-                  <TableHead>Peran</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-24 text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.fullName}</TableCell>
-                    <TableCell>{user.username}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.departmentName ?? "—"}</TableCell>
-                    <TableCell>
-                      <div className="flex max-w-64 flex-wrap gap-1">
-                        {user.roles.map((role) => (
-                          <Badge key={role.id} variant="secondary">
-                            {role.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.isActive ? "default" : "outline"}>
-                        {user.isActive ? "Aktif" : "Nonaktif"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon-sm" onClick={() => openEdit(user)}>
-                          <Pencil />
-                          <span className="sr-only">Edit</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => handleDelete(user)}
-                          disabled={deleteUser.isPending}
-                        >
-                          <Trash2 />
-                          <span className="sr-only">Hapus</span>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+        <CardContent className="grid gap-3">
+          <div className="overflow-x-auto">
+            {users.isLoading ? (
+              <div className="grid gap-2 p-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full rounded-md" />
                 ))}
-              </TableBody>
-            </Table>
-          )}
+              </div>
+            ) : filtered.length === 0 ? (
+              <p className="p-6 text-center text-muted-foreground">Tidak ada pengguna ditemukan.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nama</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Departemen</TableHead>
+                    <TableHead>Peran</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-24 text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paged.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.fullName}</TableCell>
+                      <TableCell>{user.username}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.departmentName ?? "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex max-w-64 flex-wrap gap-1">
+                          {user.roles.map((role) => (
+                            <Badge key={role.id} variant="secondary">
+                              {role.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.isActive ? "default" : "outline"}>
+                          {user.isActive ? "Aktif" : "Nonaktif"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon-sm" onClick={() => openEdit(user)}>
+                            <Pencil />
+                            <span className="sr-only">Edit</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setDeleteTarget(user)}
+                            disabled={deleteUser.isPending}
+                          >
+                            <Trash2 />
+                            <span className="sr-only">Hapus</span>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <Pagination
+            page={page}
+            total={filtered.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
 
@@ -220,6 +238,21 @@ export function UsersPage() {
         roles={roles.data ?? []}
         departments={departments.data ?? []}
         onSubmit={handleSubmit}
+      />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        title="Nonaktifkan akun pengguna?"
+        description={
+          deleteTarget
+            ? `Akun "${deleteTarget.username}" akan dinonaktifkan. Tindakan ini tidak dapat dibatalkan.`
+            : undefined
+        }
+        confirmLabel="Nonaktifkan"
+        destructive
+        isPending={deleteUser.isPending}
+        onConfirm={() => { if (deleteTarget) deleteUser.mutate(deleteTarget.id) }}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   )

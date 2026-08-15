@@ -3,11 +3,14 @@ import { FileWarning, Plus, Pencil, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 
+import { AlertDialog } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Pagination } from "@/components/ui/pagination"
 import { Select } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -32,6 +35,8 @@ const riskBadgeVariant: Record<RiskLevel, "outline" | "secondary" | "destructive
   Critical: "destructive",
 }
 
+const PAGE_SIZE = 15
+
 export function FindingsPage() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
@@ -39,6 +44,8 @@ export function FindingsPage() {
   const [riskFilter, setRiskFilter] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<FindingDto | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<FindingDto | null>(null)
+  const [page, setPage] = useState(1)
 
   const canManage = user?.roles.some((r) => findingRoles.includes(r)) ?? false
 
@@ -74,11 +81,21 @@ export function FindingsPage() {
   })
   const remove = useMutation({
     mutationFn: findingsApi.remove,
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate()
+      setDeleteTarget(null)
+    },
   })
 
   const handleSubmit = (payload: Parameters<typeof findingsApi.create>[0]) =>
     editing ? update.mutateAsync({ id: editing.id, payload }) : create.mutateAsync(payload)
+
+  // Reset page when filters change
+  const handleSearch = (v: string) => { setSearch(v); setPage(1) }
+  const handleRisk = (v: string) => { setRiskFilter(v); setPage(1) }
+
+  const allFindings = findings.data ?? []
+  const paged = allFindings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <div className="grid gap-4">
@@ -106,11 +123,11 @@ export function FindingsPage() {
         <Input
           placeholder="Cari judul / kategori / deskripsi..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearch(e.target.value)}
           className="max-w-xs"
         />
         <div className="w-44">
-          <Select value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)}>
+          <Select value={riskFilter} onChange={(e) => handleRisk(e.target.value)}>
             <option value="">Semua Risiko</option>
             {(Object.keys(RiskLevelLabels) as RiskLevel[]).map((r) => (
               <option key={r} value={r}>
@@ -128,77 +145,87 @@ export function FindingsPage() {
             {findings.data?.length ?? 0} Temuan
           </CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          {findings.isLoading ? (
-            <p className="p-6 text-center text-muted-foreground">Memuat data...</p>
-          ) : !findings.data || findings.data.length === 0 ? (
-            <p className="p-6 text-center text-muted-foreground">Belum ada temuan.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Judul</TableHead>
-                  <TableHead>Departemen</TableHead>
-                  <TableHead>Kategori</TableHead>
-                  <TableHead>Risiko</TableHead>
-                  <TableHead>Tenggat</TableHead>
-                  <TableHead>Bukti</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {findings.data.map((f) => (
-                  <TableRow key={f.id}>
-                    <TableCell>
-                      <Link to={`/findings/${f.id}`} className="font-medium hover:text-primary">
-                        {f.title}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{f.departmentName ?? "—"}</TableCell>
-                    <TableCell>{f.category ?? "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={riskBadgeVariant[f.riskLevel]}>
-                        {RiskLevelLabels[f.riskLevel]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-sm">
-                      {f.dueDate ? new Date(f.dueDate).toLocaleDateString() : "—"}
-                    </TableCell>
-                    <TableCell>{f.evidences.length}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        {canManage && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Ubah"
-                              onClick={() => {
-                                setEditing(f)
-                                setDialogOpen(true)
-                              }}
-                            >
-                              <Pencil className="size-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Hapus"
-                              onClick={() => {
-                                if (confirm(`Hapus temuan "${f.title}"?`)) remove.mutate(f.id)
-                              }}
-                            >
-                              <Trash2 className="size-4 text-destructive" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+        <CardContent className="grid gap-3">
+          <div className="overflow-x-auto">
+            {findings.isLoading ? (
+              <div className="grid gap-2 p-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full rounded-md" />
                 ))}
-              </TableBody>
-            </Table>
-          )}
+              </div>
+            ) : !findings.data || findings.data.length === 0 ? (
+              <p className="p-6 text-center text-muted-foreground">Belum ada temuan.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Judul</TableHead>
+                    <TableHead>Departemen</TableHead>
+                    <TableHead>Kategori</TableHead>
+                    <TableHead>Risiko</TableHead>
+                    <TableHead>Tenggat</TableHead>
+                    <TableHead>Bukti</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paged.map((f) => (
+                    <TableRow key={f.id}>
+                      <TableCell>
+                        <Link to={`/findings/${f.id}`} className="font-medium hover:text-primary">
+                          {f.title}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{f.departmentName ?? "—"}</TableCell>
+                      <TableCell>{f.category ?? "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant={riskBadgeVariant[f.riskLevel]}>
+                          {RiskLevelLabels[f.riskLevel]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {f.dueDate ? new Date(f.dueDate).toLocaleDateString() : "—"}
+                      </TableCell>
+                      <TableCell>{f.evidences.length}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          {canManage && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Ubah"
+                                onClick={() => {
+                                  setEditing(f)
+                                  setDialogOpen(true)
+                                }}
+                              >
+                                <Pencil className="size-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Hapus"
+                                onClick={() => setDeleteTarget(f)}
+                              >
+                                <Trash2 className="size-4 text-destructive" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <Pagination
+            page={page}
+            total={allFindings.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
 
@@ -209,6 +236,17 @@ export function FindingsPage() {
         departments={departments.data ?? []}
         auditPlans={auditPlans.data ?? []}
         onSubmit={handleSubmit}
+      />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        title="Hapus temuan?"
+        description={deleteTarget ? `Tindakan ini tidak bisa dibatalkan: "${deleteTarget.title}"` : undefined}
+        confirmLabel="Hapus"
+        destructive
+        isPending={remove.isPending}
+        onConfirm={() => { if (deleteTarget) remove.mutate(deleteTarget.id) }}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   )

@@ -9,6 +9,9 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Pagination } from "@/components/ui/pagination"
+import { Select } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -28,9 +31,12 @@ const ENTITIES = [
   "AuditLog",
 ]
 
+const PAGE_SIZE = 20
+
 export function AuditLogsPage() {
   const [search, setSearch] = useState("")
   const [entity, setEntity] = useState("")
+  const [page, setPage] = useState(1)
 
   const logs = useQuery({
     queryKey: ["audit-logs", search, entity],
@@ -38,9 +44,15 @@ export function AuditLogsPage() {
       auditLogsApi.list({
         search: search || undefined,
         entity: entity || undefined,
-        take: 100,
+        take: 500,
       }),
   })
+
+  const handleSearch = (v: string) => { setSearch(v); setPage(1) }
+  const handleEntity = (v: string) => { setEntity(v); setPage(1) }
+
+  const allLogs = logs.data ?? []
+  const paged = allLogs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <div className="grid gap-4">
@@ -63,15 +75,15 @@ export function AuditLogsPage() {
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearch(e.target.value)}
                 placeholder="Cari user, aksi, atau ID entitas..."
                 className="pl-9"
               />
             </div>
-            <select
+            <Select
               value={entity}
-              onChange={(e) => setEntity(e.target.value)}
-              className="h-9 rounded-md border bg-transparent px-3 text-sm"
+              onChange={(e) => handleEntity(e.target.value)}
+              className="w-44"
             >
               <option value="">Semua entitas</option>
               {ENTITIES.map((item) => (
@@ -79,17 +91,21 @@ export function AuditLogsPage() {
                   {item}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
-          {logs.isLoading ? (
-            <p className="p-6 text-center text-muted-foreground">Memuat data...</p>
-          ) : (logs.data ?? []).length === 0 ? (
-            <p className="p-6 text-center text-muted-foreground">
-              Belum ada catatan aktivitas.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
+          <div className="overflow-x-auto">
+            {logs.isLoading ? (
+              <div className="grid gap-2 p-2">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full rounded-md" />
+                ))}
+              </div>
+            ) : allLogs.length === 0 ? (
+              <p className="p-6 text-center text-muted-foreground">
+                Belum ada catatan aktivitas.
+              </p>
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -102,7 +118,7 @@ export function AuditLogsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.data?.map((log) => (
+                  {paged.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
                         {new Date(log.createdAt).toLocaleString()}
@@ -120,8 +136,14 @@ export function AuditLogsPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          )}
+            )}
+          </div>
+          <Pagination
+            page={page}
+            total={allLogs.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
     </div>
