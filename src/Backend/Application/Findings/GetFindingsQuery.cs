@@ -46,11 +46,11 @@ internal sealed class GetFindingsQueryHandler : IRequestHandler<GetFindingsQuery
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var term = request.Search.Trim();
-            query = query.Where(f =>
-                f.Title.ToUpper().Contains(term.ToUpper())
-                || (f.Category != null && f.Category.ToUpper().Contains(term.ToUpper()))
-                || (f.Description != null && f.Description.ToUpper().Contains(term.ToUpper())));
+            var search = request.Search.Trim();
+            query = query.Where(f => EF.Functions
+                .ToTsVector("simple",
+                    f.Title + " " + (f.Category ?? "") + " " + (f.Description ?? ""))
+                .Matches(EF.Functions.WebSearchToTsQuery("simple", search)));
         }
 
         var findings = query

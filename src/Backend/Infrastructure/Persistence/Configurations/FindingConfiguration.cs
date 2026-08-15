@@ -20,6 +20,11 @@ public sealed class FindingConfiguration : IEntityTypeConfiguration<Finding>
         builder.HasIndex(x => x.CreatedAt);
         builder.HasIndex(x => x.DepartmentId);
 
+        // Full-text search over Title/Category/Description (PostgreSQL GIN expression index).
+        builder.HasIndex(x => new { x.Title, x.Category, x.Description })
+            .HasMethod("GIN")
+            .IsTsVectorExpressionIndex("simple");
+
         builder.HasOne(x => x.Department)
             .WithMany()
             .HasForeignKey(x => x.DepartmentId)

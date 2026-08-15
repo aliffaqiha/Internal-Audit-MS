@@ -32,3 +32,6 @@ appsettings.Development.json
 # Logs
 logs/
 *.log
+
+# Backups
+backups/

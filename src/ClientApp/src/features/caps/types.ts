@@ -33,6 +33,7 @@ export interface CapsFilter {
   status?: CapStatus
   findingId?: string
   departmentId?: string
+  search?: string
   page?: number
   pageSize?: number
 }

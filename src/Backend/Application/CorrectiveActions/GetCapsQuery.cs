@@ -11,6 +11,7 @@ public sealed record GetCapsQuery(
     CorrectiveActionStatus? Status = null,
     Guid? FindingId = null,
     Guid? DepartmentId = null,
+    string? Search = null,
     int Page = 1,
     int PageSize = Pagination.DefaultPageSize) : IRequest<PagedResult<CorrectiveActionDto>>;
 
@@ -40,6 +41,16 @@ internal sealed class GetCapsQueryHandler : IRequestHandler<GetCapsQuery, PagedR
             query = query.Where(c => c.FindingId == request.FindingId);
         if (request.DepartmentId.HasValue)
             query = query.Where(c => c.Finding != null && c.Finding.DepartmentId == request.DepartmentId);
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim();
+            query = query.Where(c => EF.Functions
+                .ToTsVector("simple",
+                    c.Action + " " + (c.PicName ?? "") + " " +
+                    (c.RejectionReason ?? "") + " " + (c.VerificationNote ?? ""))
+                .Matches(EF.Functions.WebSearchToTsQuery("simple", search)));
+        }
 
         var caps = query
             .OrderBy(c => c.Status)

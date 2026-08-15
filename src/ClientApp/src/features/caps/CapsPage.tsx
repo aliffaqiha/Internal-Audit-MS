@@ -7,6 +7,7 @@ import { AlertDialog } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Pagination } from "@/components/ui/pagination"
 import { RejectDialog } from "@/components/ui/reject-dialog"
 import { Select } from "@/components/ui/select"
@@ -40,6 +41,7 @@ const PAGE_SIZE = 15
 export function CapsPage() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
+  const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<CorrectiveActionDto | null>(null)
@@ -53,9 +55,10 @@ export function CapsPage() {
   const isVerifier = user?.roles.some((r) => verifierRoles.includes(r)) ?? false
 
   const caps = useQuery({
-    queryKey: ["caps", statusFilter, page],
+    queryKey: ["caps", search, statusFilter, page],
     queryFn: () =>
       capsApi.list({
+        search: search || undefined,
         status: statusFilter ? (statusFilter as CapStatus) : undefined,
         page,
         pageSize: PAGE_SIZE,
@@ -114,6 +117,8 @@ export function CapsPage() {
 
   const handleStatusFilter = (v: string) => { setStatusFilter(v); setPage(1) }
 
+  const handleSearch = (v: string) => { setSearch(v); setPage(1) }
+
   const items = caps.data?.items ?? []
   const totalCount = caps.data?.totalCount ?? 0
 
@@ -140,6 +145,15 @@ export function CapsPage() {
             ))}
           </Select>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          placeholder="Cari tindak lanjut / PIC / alasan..."
+          value={search}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="max-w-xs"
+        />
       </div>
 
       <Card>

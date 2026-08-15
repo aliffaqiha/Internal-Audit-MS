@@ -23,6 +23,11 @@ public sealed class CorrectiveActionConfiguration : IEntityTypeConfiguration<Cor
         builder.HasIndex(x => x.Status);
         builder.HasIndex(x => x.CreatedAt);
 
+        // Full-text search over Action/PicName/RejectionReason/VerificationNote (GIN expression index).
+        builder.HasIndex(x => new { x.Action, x.PicName, x.RejectionReason, x.VerificationNote })
+            .HasMethod("GIN")
+            .IsTsVectorExpressionIndex("simple");
+
         builder.HasOne(x => x.Finding)
             .WithMany()
             .HasForeignKey(x => x.FindingId)
