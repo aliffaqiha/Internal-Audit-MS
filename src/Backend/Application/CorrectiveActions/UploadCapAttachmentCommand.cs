@@ -1,4 +1,5 @@
 using FluentValidation;
+using IAMS.Application.Common.DataScoping;
 using IAMS.Application.Common.Exceptions;
 using IAMS.Application.Common.Interfaces;
 using IAMS.Application.Findings;
@@ -31,20 +32,27 @@ internal sealed class UploadCapAttachmentCommandHandler : IRequestHandler<Upload
     private readonly IApplicationDbContext _db;
     private readonly IAuditService _audit;
     private readonly IObjectStorageService _storage;
+    private readonly ICurrentUserService _currentUser;
 
     public UploadCapAttachmentCommandHandler(
-        IApplicationDbContext db, IAuditService audit, IObjectStorageService storage)
+        IApplicationDbContext db, IAuditService audit, IObjectStorageService storage, ICurrentUserService currentUser)
     {
         _db = db;
         _audit = audit;
         _storage = storage;
+        _currentUser = currentUser;
     }
 
     public async Task Handle(UploadCapAttachmentCommand request, CancellationToken cancellationToken)
     {
+        var scope = await CurrentUserAccess.ResolveAsync(_db, _currentUser, cancellationToken);
+
         var cap = await _db.CorrectiveActions
+            .Include(c => c.Finding)
             .FirstOrDefaultAsync(c => c.Id == request.CapId, cancellationToken)
             ?? throw new KeyNotFoundException("Rencana tindak lanjut tidak ditemukan.");
+
+        CurrentUserAccess.EnsureCanAccessFinding(scope, cap.Finding?.DepartmentId);
 
         if (cap.Status == CorrectiveActionStatus.Closed)
             throw new InvalidOperationException("CAP yang sudah ditutup tidak dapat melampirkan bukti baru.");

@@ -1,3 +1,4 @@
+using IAMS.Application.Common.DataScoping;
 using IAMS.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -15,14 +16,24 @@ public sealed record GetCapAttachmentQuery(Guid Id) : IRequest<CapAttachmentDown
 internal sealed class GetCapAttachmentQueryHandler : IRequestHandler<GetCapAttachmentQuery, CapAttachmentDownloadDto>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetCapAttachmentQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetCapAttachmentQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
 
     public async Task<CapAttachmentDownloadDto> Handle(GetCapAttachmentQuery request, CancellationToken cancellationToken)
     {
+        var scope = await CurrentUserAccess.ResolveAsync(_db, _currentUser, cancellationToken);
+
         var cap = await _db.CorrectiveActions
             .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken)
+            .Include(c => c.Finding)
+            .Where(c => c.Id == request.Id)
+            .RestrictCaps(scope)
+            .FirstOrDefaultAsync(cancellationToken)
             ?? throw new KeyNotFoundException("Rencana tindak lanjut tidak ditemukan.");
 
         if (cap.AttachmentObjectName == null)

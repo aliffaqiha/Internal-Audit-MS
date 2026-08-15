@@ -1,3 +1,4 @@
+using IAMS.Application.Common.DataScoping;
 using IAMS.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -16,14 +17,23 @@ public sealed record GetEvidenceDownloadQuery(Guid FindingId, Guid EvidenceId) :
 internal sealed class GetEvidenceDownloadQueryHandler : IRequestHandler<GetEvidenceDownloadQuery, EvidenceDownloadDto>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetEvidenceDownloadQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetEvidenceDownloadQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
 
     public async Task<EvidenceDownloadDto> Handle(GetEvidenceDownloadQuery request, CancellationToken cancellationToken)
     {
+        var scope = await CurrentUserAccess.ResolveAsync(_db, _currentUser, cancellationToken);
+
         var evidence = await _db.FindingEvidences
             .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.FindingId == request.FindingId && e.Id == request.EvidenceId, cancellationToken)
+            .Where(e => e.FindingId == request.FindingId && e.Id == request.EvidenceId)
+            .Where(e => scope.HasFullAccess || (e.Finding != null && e.Finding.DepartmentId == scope.DepartmentId))
+            .FirstOrDefaultAsync(cancellationToken)
             ?? throw new KeyNotFoundException("Bukti tidak ditemukan.");
 
         return new EvidenceDownloadDto(

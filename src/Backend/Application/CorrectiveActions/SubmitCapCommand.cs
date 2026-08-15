@@ -1,4 +1,5 @@
 using FluentValidation;
+using IAMS.Application.Common.DataScoping;
 using IAMS.Application.Common.Interfaces;
 using IAMS.Domain.Entities;
 using IAMS.Domain.Enums;
@@ -18,18 +19,25 @@ internal sealed class SubmitCapCommandHandler : IRequestHandler<SubmitCapCommand
 {
     private readonly IApplicationDbContext _db;
     private readonly IAuditService _audit;
+    private readonly ICurrentUserService _currentUser;
 
-    public SubmitCapCommandHandler(IApplicationDbContext db, IAuditService audit)
+    public SubmitCapCommandHandler(IApplicationDbContext db, IAuditService audit, ICurrentUserService currentUser)
     {
         _db = db;
         _audit = audit;
+        _currentUser = currentUser;
     }
 
     public async Task Handle(SubmitCapCommand request, CancellationToken cancellationToken)
     {
+        var scope = await CurrentUserAccess.ResolveAsync(_db, _currentUser, cancellationToken);
+
         var cap = await _db.CorrectiveActions
+            .Include(c => c.Finding)
             .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken)
             ?? throw new KeyNotFoundException("Rencana tindak lanjut tidak ditemukan.");
+
+        CurrentUserAccess.EnsureCanAccessFinding(scope, cap.Finding?.DepartmentId);
 
         CapState.EnsureTransition(cap, CorrectiveActionStatus.InProgress,
             CorrectiveActionStatus.PendingVerification, "Ajukan verifikasi");

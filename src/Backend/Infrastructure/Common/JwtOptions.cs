@@ -9,4 +9,10 @@ public sealed class JwtOptions
     public string SecretKey { get; set; } = string.Empty;
     public int AccessTokenMinutes { get; set; } = 15;
     public int RefreshTokenDays { get; set; } = 7;
+
+    /// <summary>
+    /// When true the refresh token is issued as an httpOnly cookie instead of
+    /// being returned in the response body (XSS-resistant).
+    /// </summary>
+    public bool RefreshTokenCookie { get; set; } = true;
 }

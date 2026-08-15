@@ -1,4 +1,5 @@
 using IAMS.Api.Authorization;
+using IAMS.Application.Common;
 using IAMS.Application.Users;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -19,8 +20,8 @@ public sealed class UsersController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<UserDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<UserDto>>> Get([FromQuery] GetUsersQuery query, CancellationToken ct)
+    [ProducesResponseType(typeof(PagedResult<UserDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<UserDto>>> Get([FromQuery] GetUsersQuery query, CancellationToken ct)
         => Ok(await _sender.Send(query, ct));
 
     [HttpGet("{id:guid}")]

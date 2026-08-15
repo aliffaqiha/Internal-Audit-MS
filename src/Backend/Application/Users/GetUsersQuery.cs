@@ -1,3 +1,4 @@
+using IAMS.Application.Common;
 using IAMS.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -8,9 +9,11 @@ public sealed record GetUsersQuery(
     string? Search = null,
     Guid? DepartmentId = null,
     Guid? RoleId = null,
-    bool? IsActive = null) : IRequest<IReadOnlyList<UserDto>>;
+    bool? IsActive = null,
+    int Page = 1,
+    int PageSize = Pagination.DefaultPageSize) : IRequest<PagedResult<UserDto>>;
 
-internal sealed class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, IReadOnlyList<UserDto>>
+internal sealed class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PagedResult<UserDto>>
 {
     private readonly IApplicationDbContext _db;
 
@@ -19,7 +22,7 @@ internal sealed class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, IRea
         _db = db;
     }
 
-    public async Task<IReadOnlyList<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<UserDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
     {
         var query = _db.Users.AsNoTracking();
 
@@ -41,7 +44,7 @@ internal sealed class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, IRea
         if (request.IsActive.HasValue)
             query = query.Where(u => u.IsActive == request.IsActive);
 
-        return await query
+        var users = query
             .OrderBy(u => u.Username)
             .Select(u => new UserDto(
                 u.Id,
@@ -52,7 +55,8 @@ internal sealed class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, IRea
                 u.MustChangePassword,
                 u.DepartmentId,
                 u.Department != null ? u.Department.Name : null,
-                u.UserRoles.Select(ur => new RoleDto(ur.Role.Id, ur.Role.Name, ur.Role.Description)).ToList()))
-            .ToListAsync(cancellationToken);
+                u.UserRoles.Select(ur => new RoleDto(ur.Role.Id, ur.Role.Name, ur.Role.Description)).ToList()));
+
+        return await users.ToPagedAsync(request.Page, request.PageSize, cancellationToken);
     }
 }

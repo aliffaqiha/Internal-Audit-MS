@@ -1,4 +1,4 @@
-import { api } from "@/lib/api"
+import { api, type PagedResult } from "@/lib/api"
 
 import type {
   AuditPlanDto,
@@ -9,11 +9,18 @@ import type {
   ChecklistItemStatus,
 } from "./types"
 
+export interface AuditPlanListQuery {
+  status?: AuditPlanStatus
+  departmentId?: string
+  page?: number
+  pageSize?: number
+}
+
 export const auditApi = {
   team: () => api.get<AuditTeamMemberDto[]>("/audits/team").then((r) => r.data),
 
-  list: (params?: { status?: AuditPlanStatus }) =>
-    api.get<AuditPlanDto[]>("/audits", { params }).then((r) => r.data),
+  list: (params?: AuditPlanListQuery) =>
+    api.get<PagedResult<AuditPlanDto>>("/audits", { params }).then((r) => r.data),
 
   get: (id: string) => api.get<AuditPlanDto>(`/audits/${id}`).then((r) => r.data),
 

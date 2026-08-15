@@ -1,4 +1,4 @@
-import { api } from "@/lib/api"
+import { api, type PagedResult } from "@/lib/api"
 
 import type {
   CreateDepartmentPayload,
@@ -10,6 +10,15 @@ import type {
   UserDto,
 } from "./types"
 
+export interface UsersQuery {
+  search?: string
+  departmentId?: string
+  roleId?: string
+  isActive?: boolean
+  page?: number
+  pageSize?: number
+}
+
 export const adminApi = {
   roles: () => api.get<RoleDto[]>("/roles").then((r) => r.data),
 
@@ -20,7 +29,8 @@ export const adminApi = {
     api.put(`/departments/${id}`, payload).then(() => undefined),
   deleteDepartment: (id: string) => api.delete(`/departments/${id}`).then(() => undefined),
 
-  users: () => api.get<UserDto[]>("/users").then((r) => r.data),
+  users: (params?: UsersQuery) =>
+    api.get<PagedResult<UserDto>>("/users", { params }).then((r) => r.data),
   createUser: (payload: CreateUserPayload) =>
     api.post<GuidResponse>("/users", payload).then((r) => r.data.id),
   updateUser: (id: string, payload: UpdateUserPayload) =>

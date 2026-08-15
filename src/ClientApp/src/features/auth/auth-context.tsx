@@ -44,14 +44,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     const refresh = tokenStore.refreshToken
-    tokenStore.clear()
-    setUser(null)
-    if (refresh) {
-      try {
-        await authApi.logout(refresh)
-      } catch {
-        // token may already be revoked; ignore
-      }
+    try {
+      await authApi.logout(refresh)
+    } catch {
+      // token may already be revoked; ignore
+    } finally {
+      tokenStore.clear()
+      setUser(null)
     }
   }, [])
 

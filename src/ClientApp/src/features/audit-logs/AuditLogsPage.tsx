@@ -39,20 +39,21 @@ export function AuditLogsPage() {
   const [page, setPage] = useState(1)
 
   const logs = useQuery({
-    queryKey: ["audit-logs", search, entity],
+    queryKey: ["audit-logs", search, entity, page],
     queryFn: () =>
       auditLogsApi.list({
         search: search || undefined,
         entity: entity || undefined,
-        take: 500,
+        page,
+        pageSize: PAGE_SIZE,
       }),
   })
 
   const handleSearch = (v: string) => { setSearch(v); setPage(1) }
   const handleEntity = (v: string) => { setEntity(v); setPage(1) }
 
-  const allLogs = logs.data ?? []
-  const paged = allLogs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const items = logs.data?.items ?? []
+  const totalCount = logs.data?.totalCount ?? 0
 
   return (
     <div className="grid gap-4">
@@ -101,7 +102,7 @@ export function AuditLogsPage() {
                   <Skeleton key={i} className="h-10 w-full rounded-md" />
                 ))}
               </div>
-            ) : allLogs.length === 0 ? (
+            ) : items.length === 0 ? (
               <p className="p-6 text-center text-muted-foreground">
                 Belum ada catatan aktivitas.
               </p>
@@ -118,7 +119,7 @@ export function AuditLogsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paged.map((log) => (
+                  {items.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
                         {new Date(log.createdAt).toLocaleString()}
@@ -140,7 +141,7 @@ export function AuditLogsPage() {
           </div>
           <Pagination
             page={page}
-            total={allLogs.length}
+            total={totalCount}
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
           />

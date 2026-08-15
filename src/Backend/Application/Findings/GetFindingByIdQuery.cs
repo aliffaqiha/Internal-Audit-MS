@@ -1,3 +1,4 @@
+using IAMS.Application.Common.DataScoping;
 using IAMS.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -9,15 +10,23 @@ public sealed record GetFindingByIdQuery(Guid Id) : IRequest<FindingDto>;
 internal sealed class GetFindingByIdQueryHandler : IRequestHandler<GetFindingByIdQuery, FindingDto>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetFindingByIdQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetFindingByIdQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
 
     public async Task<FindingDto> Handle(GetFindingByIdQuery request, CancellationToken cancellationToken)
     {
+        var scope = await CurrentUserAccess.ResolveAsync(_db, _currentUser, cancellationToken);
+
         var finding = await _db.Findings
             .AsNoTracking()
             .Include(f => f.Evidences)
             .Where(f => f.Id == request.Id)
+            .RestrictFindings(scope)
             .Select(f => new FindingDto(
                 f.Id,
                 f.Title,
@@ -29,6 +38,7 @@ internal sealed class GetFindingByIdQueryHandler : IRequestHandler<GetFindingByI
                 f.Recommendation,
                 f.DueDate,
                 f.AuditPlanId,
+                f.AuditPlan != null ? f.AuditPlan.Title : null,
                 f.Evidences
                     .OrderByDescending(e => e.Version)
                     .Select(e => new FindingEvidenceDto(

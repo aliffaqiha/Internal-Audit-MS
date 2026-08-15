@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { toast } from "@/components/ui/toast"
 import { useAuth } from "@/features/auth/auth-context"
 import { CapSection } from "@/features/caps/CapSection"
 import { findingsApi } from "@/features/findings/findings-api"
@@ -39,7 +40,6 @@ export function FindingDetailPage() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
-  const [error, setError] = useState<string | null>(null)
   const [uploadingFor, setUploadingFor] = useState<string | null>(null)
 
   const canManage = user?.roles.some((r) => findingRoles.includes(r)) ?? false
@@ -54,16 +54,18 @@ export function FindingDetailPage() {
   const upload = useMutation({
     mutationFn: ({ evidenceId, file }: { evidenceId: string; file: File }) =>
       findingsApi.uploadEvidence(evidenceId, file),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate()
+      toast.success("Bukti temuan berhasil diunggah!")
+    },
     onError: (err) => {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setError(message ?? "Upload bukti gagal.")
+      toast.error(message ?? "Upload bukti gagal.")
     },
   })
 
   const handleFile = (file: File | undefined) => {
     if (!file) return
-    setError(null)
     setUploadingFor(id)
     upload.mutate(
       { evidenceId: id, file },
@@ -103,8 +105,6 @@ export function FindingDetailPage() {
         />
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
-
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -136,8 +136,18 @@ export function FindingDetailPage() {
             </div>
             <div>
               <div className="font-medium">Rencana Audit</div>
-              <div className="truncate text-muted-foreground">
-                {data.auditPlanId ? "Terhubung" : "—"}
+              <div className="truncate">
+                {data.auditPlanId ? (
+                  <Link
+                    to={`/audits/${data.auditPlanId}`}
+                    className="font-medium text-primary hover:underline inline-block truncate max-w-full"
+                    title={data.auditPlanTitle ?? "Lihat Rencana Audit"}
+                  >
+                    {data.auditPlanTitle ?? "Lihat Rencana Audit"}
+                  </Link>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
               </div>
             </div>
           </div>

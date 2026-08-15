@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import {
   Table,
@@ -20,14 +21,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
+import { toast } from "@/components/ui/toast"
 import { useAuth } from "@/features/auth/auth-context"
 import { auditApi } from "@/features/audit/audit-api"
+import { AuditPlanStatusBadge } from "@/features/audit/AuditPlanStatusBadge"
 import type {
   AuditPlanChecklistItemDto,
   ChecklistItemStatus,
 } from "@/features/audit/types"
-import { AuditPlanStatusLabels, ChecklistItemStatusLabels } from "@/features/audit/types"
+import { ChecklistItemStatusLabels } from "@/features/audit/types"
 
 const plannerRoles = ["Auditor", "AuditManager", "Administrator"]
 const approverRoles = ["AuditManager", "Administrator"]
@@ -36,7 +38,6 @@ export function AuditPlanDetailPage() {
   const { id = "" } = useParams()
   const { user } = useAuth()
   const queryClient = useQueryClient()
-  const [error, setError] = useState<string | null>(null)
   const [noteDraft, setNoteDraft] = useState<Record<string, string>>({})
 
   const isPlanner = user?.roles.some((r) => plannerRoles.includes(r)) ?? false
@@ -49,15 +50,15 @@ export function AuditPlanDetailPage() {
     queryClient.invalidateQueries({ queryKey: ["audits", id] })
   }
 
-  const run = async (fn: () => Promise<unknown>) => {
-    setError(null)
+  const run = async (fn: () => Promise<unknown>, successMsg = "Aksi berhasil diproses.") => {
     try {
       await fn()
       invalidate()
+      toast.success(successMsg)
     } catch (err) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data
         ?.message
-      setError(message ?? "Terjadi kesalahan.")
+      toast.error(message ?? "Terjadi kesalahan.")
     }
   }
 
@@ -71,7 +72,14 @@ export function AuditPlanDetailPage() {
       status: ChecklistItemStatus
       note: string | null
     }) => auditApi.updateChecklistItem(id, itemId, { status, note }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate()
+      toast.success("Checklist diperbarui")
+    },
+    onError: (err) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(message ?? "Gagal memperbarui checklist.")
+    },
   })
 
   const canHaveReport =
@@ -88,6 +96,11 @@ export function AuditPlanDetailPage() {
     mutationFn: () => auditApi.generateReport(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["audits", id, "report"] })
+      toast.success("Laporan audit berhasil dibuat!")
+    },
+    onError: (err) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(message ?? "Gagal membuat laporan audit.")
     },
   })
 
@@ -96,6 +109,12 @@ export function AuditPlanDetailPage() {
       const meta = reportMeta.data
       if (!meta) return
       await auditApi.downloadReport(id, meta.fileName)
+    },
+    onSuccess: () => {
+      toast.success("Laporan PDF berhasil diunduh")
+    },
+    onError: () => {
+      toast.error("Gagal mengunduh laporan PDF.")
     },
   })
 
@@ -114,16 +133,32 @@ export function AuditPlanDetailPage() {
 
   const actions: Record<string, { label: string; icon: typeof Send; action: () => void } | null> = {
     Draft: isPlanner
-      ? { label: "Submit untuk Persetujuan", icon: Send, action: () => run(() => auditApi.submit(id)) }
+      ? {
+          label: "Submit untuk Persetujuan",
+          icon: Send,
+          action: () => run(() => auditApi.submit(id), "Rencana audit diajukan untuk persetujuan"),
+        }
       : null,
     Submitted: isApprover
-      ? { label: "Setujui", icon: CheckCircle2, action: () => run(() => auditApi.approve(id, null)) }
+      ? {
+          label: "Setujui",
+          icon: CheckCircle2,
+          action: () => run(() => auditApi.approve(id, null), "Rencana audit telah disetujui"),
+        }
       : null,
     Approved: isPlanner
-      ? { label: "Mulai Audit", icon: Rocket, action: () => run(() => auditApi.start(id)) }
+      ? {
+          label: "Mulai Audit",
+          icon: Rocket,
+          action: () => run(() => auditApi.start(id), "Audit resmi dimulai"),
+        }
       : null,
     InProgress: isPlanner
-      ? { label: "Selesaikan Audit", icon: Flag, action: () => run(() => auditApi.complete(id)) }
+      ? {
+          label: "Selesaikan Audit",
+          icon: Flag,
+          action: () => run(() => auditApi.complete(id), "Audit selesai dilaksanakan"),
+        }
       : null,
     Completed: null,
   }
@@ -141,7 +176,6 @@ export function AuditPlanDetailPage() {
           Kembali
         </Link>
         <div className="flex items-center gap-2">
-          {error && <p className="text-sm text-destructive">{error}</p>}
           {action && (
             <Button onClick={action.action} disabled={checklistUpdate.isPending}>
               <action.icon data-icon="inline-start" />
@@ -155,7 +189,7 @@ export function AuditPlanDetailPage() {
         <CardHeader>
           <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-lg">{data.title}</CardTitle>
-            <Badge variant="outline">{AuditPlanStatusLabels[data.status]}</Badge>
+            <AuditPlanStatusBadge status={data.status} />
           </div>
         </CardHeader>
         <CardContent className="grid gap-4 text-sm">

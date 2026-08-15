@@ -22,9 +22,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { toast } from "@/components/ui/toast"
 import { useAuth } from "@/features/auth/auth-context"
 import { auditApi } from "@/features/audit/audit-api"
 import { AuditPlanFormDialog } from "@/features/audit/AuditPlanFormDialog"
+import { AuditPlanStatusBadge } from "@/features/audit/AuditPlanStatusBadge"
 import type { AuditPlanDto, AuditPlanStatus } from "@/features/audit/types"
 import { AuditPlanStatusLabels } from "@/features/audit/types"
 import { adminApi } from "@/features/admin/admin-api"
@@ -42,8 +44,13 @@ export function AuditPlansPage() {
   const isPlanner = user?.roles.some((r) => plannerRoles.includes(r)) ?? false
 
   const plans = useQuery({
-    queryKey: ["audits", statusFilter],
-    queryFn: () => auditApi.list(statusFilter ? { status: statusFilter as AuditPlanStatus } : undefined),
+    queryKey: ["audits", statusFilter, page],
+    queryFn: () =>
+      auditApi.list({
+        status: statusFilter ? (statusFilter as AuditPlanStatus) : undefined,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
   })
   const departments = useQuery({ queryKey: ["departments"], queryFn: adminApi.departments })
   const team = useQuery({ queryKey: ["audit-team"], queryFn: auditApi.team, enabled: isPlanner })
@@ -52,6 +59,11 @@ export function AuditPlansPage() {
     mutationFn: auditApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["audits"] })
+      toast.success("Rencana audit berhasil dibuat")
+    },
+    onError: (err) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(message ?? "Gagal membuat rencana audit.")
     },
   })
 
@@ -65,8 +77,8 @@ export function AuditPlansPage() {
 
   const handleStatusFilter = (v: string) => { setStatusFilter(v); setPage(1) }
 
-  const allPlans = plans.data ?? []
-  const paged = allPlans.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const items = plans.data?.items ?? []
+  const totalCount = plans.data?.totalCount ?? 0
 
   return (
     <div className="grid gap-4">
@@ -108,7 +120,7 @@ export function AuditPlansPage() {
                   <Skeleton key={i} className="h-10 w-full rounded-md" />
                 ))}
               </div>
-            ) : allPlans.length === 0 ? (
+            ) : items.length === 0 ? (
               <div className="grid place-items-center gap-2 p-10 text-center text-muted-foreground">
                 <ClipboardList className="size-8" />
                 <p>Belum ada rencana audit.</p>
@@ -126,7 +138,7 @@ export function AuditPlansPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paged.map((plan: AuditPlanDto) => (
+                  {items.map((plan: AuditPlanDto) => (
                     <TableRow key={plan.id} className="cursor-pointer">
                       <TableCell>
                         <Link
@@ -154,7 +166,7 @@ export function AuditPlansPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{AuditPlanStatusLabels[plan.status]}</Badge>
+                        <AuditPlanStatusBadge status={plan.status} />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -164,7 +176,7 @@ export function AuditPlansPage() {
           </div>
           <Pagination
             page={page}
-            total={allPlans.length}
+            total={totalCount}
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
           />

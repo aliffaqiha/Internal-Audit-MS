@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { toast } from "@/components/ui/toast"
 import { useAuth } from "@/features/auth/auth-context"
 import { auditApi } from "@/features/audit/audit-api"
 import { adminApi } from "@/features/admin/admin-api"
@@ -50,15 +51,20 @@ export function FindingsPage() {
   const canManage = user?.roles.some((r) => findingRoles.includes(r)) ?? false
 
   const findings = useQuery({
-    queryKey: ["findings", search, riskFilter],
+    queryKey: ["findings", search, riskFilter, page],
     queryFn: () =>
       findingsApi.list({
         search: search || undefined,
         riskLevel: riskFilter ? (riskFilter as RiskLevel) : undefined,
+        page,
+        pageSize: PAGE_SIZE,
       }),
   })
   const departments = useQuery({ queryKey: ["departments"], queryFn: adminApi.departments })
-  const auditPlans = useQuery({ queryKey: ["audits"], queryFn: () => auditApi.list() })
+  const auditPlans = useQuery({
+    queryKey: ["audits"],
+    queryFn: () => auditApi.list({ pageSize: 100 }),
+  })
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["findings"] })
 
@@ -68,6 +74,11 @@ export function FindingsPage() {
       invalidate()
       setDialogOpen(false)
       setEditing(null)
+      toast.success("Temuan audit berhasil dibuat")
+    },
+    onError: (err) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(message ?? "Gagal membuat temuan.")
     },
   })
   const update = useMutation({
@@ -77,6 +88,11 @@ export function FindingsPage() {
       invalidate()
       setDialogOpen(false)
       setEditing(null)
+      toast.success("Temuan audit berhasil diperbarui")
+    },
+    onError: (err) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(message ?? "Gagal memperbarui temuan.")
     },
   })
   const remove = useMutation({
@@ -84,6 +100,11 @@ export function FindingsPage() {
     onSuccess: () => {
       invalidate()
       setDeleteTarget(null)
+      toast.success("Temuan audit berhasil dihapus")
+    },
+    onError: (err) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(message ?? "Gagal menghapus temuan.")
     },
   })
 
@@ -94,8 +115,8 @@ export function FindingsPage() {
   const handleSearch = (v: string) => { setSearch(v); setPage(1) }
   const handleRisk = (v: string) => { setRiskFilter(v); setPage(1) }
 
-  const allFindings = findings.data ?? []
-  const paged = allFindings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const items = findings.data?.items ?? []
+  const totalCount = findings.data?.totalCount ?? 0
 
   return (
     <div className="grid gap-4">
@@ -142,7 +163,7 @@ export function FindingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileWarning className="size-5" />
-            {findings.data?.length ?? 0} Temuan
+            {totalCount} Temuan
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3">
@@ -153,7 +174,7 @@ export function FindingsPage() {
                   <Skeleton key={i} className="h-10 w-full rounded-md" />
                 ))}
               </div>
-            ) : !findings.data || findings.data.length === 0 ? (
+            ) : !findings.data || items.length === 0 ? (
               <p className="p-6 text-center text-muted-foreground">Belum ada temuan.</p>
             ) : (
               <Table>
@@ -169,7 +190,7 @@ export function FindingsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paged.map((f) => (
+                  {items.map((f) => (
                     <TableRow key={f.id}>
                       <TableCell>
                         <Link to={`/findings/${f.id}`} className="font-medium hover:text-primary">
@@ -222,7 +243,7 @@ export function FindingsPage() {
           </div>
           <Pagination
             page={page}
-            total={allFindings.length}
+            total={totalCount}
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
           />
@@ -234,7 +255,7 @@ export function FindingsPage() {
         onOpenChange={setDialogOpen}
         finding={editing}
         departments={departments.data ?? []}
-        auditPlans={auditPlans.data ?? []}
+        auditPlans={auditPlans.data?.items ?? []}
         onSubmit={handleSubmit}
       />
 

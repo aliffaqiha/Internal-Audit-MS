@@ -1,4 +1,5 @@
 using IAMS.Application.AuditLogs;
+using IAMS.Application.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,8 +17,8 @@ public sealed class AuditLogsController : ControllerBase
     public AuditLogsController(ISender sender) => _sender = sender;
 
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<AuditLogDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<AuditLogDto>>> Get(
+    [ProducesResponseType(typeof(PagedResult<AuditLogDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<AuditLogDto>>> Get(
         [FromQuery] GetAuditLogsQuery query, CancellationToken ct = default)
         => Ok(await _sender.Send(query, ct));
 }

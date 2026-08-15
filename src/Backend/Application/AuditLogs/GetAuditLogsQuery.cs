@@ -1,3 +1,4 @@
+using IAMS.Application.Common;
 using IAMS.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -19,15 +20,16 @@ public sealed record AuditLogDto(
 public sealed record GetAuditLogsQuery(
     string? Search = null,
     string? Entity = null,
-    int Take = 100) : IRequest<IReadOnlyList<AuditLogDto>>;
+    int Page = 1,
+    int PageSize = Pagination.DefaultPageSize) : IRequest<PagedResult<AuditLogDto>>;
 
-internal sealed class GetAuditLogsQueryHandler : IRequestHandler<GetAuditLogsQuery, IReadOnlyList<AuditLogDto>>
+internal sealed class GetAuditLogsQueryHandler : IRequestHandler<GetAuditLogsQuery, PagedResult<AuditLogDto>>
 {
     private readonly IApplicationDbContext _db;
 
     public GetAuditLogsQueryHandler(IApplicationDbContext db) => _db = db;
 
-    public async Task<IReadOnlyList<AuditLogDto>> Handle(GetAuditLogsQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<AuditLogDto>> Handle(GetAuditLogsQuery request, CancellationToken cancellationToken)
     {
         var query = _db.AuditLogs.AsNoTracking();
 
@@ -43,11 +45,8 @@ internal sealed class GetAuditLogsQueryHandler : IRequestHandler<GetAuditLogsQue
                 || (a.EntityId != null && a.EntityId.ToUpper().Contains(term)));
         }
 
-        var take = Math.Clamp(request.Take, 1, 500);
-
-        return await query
+        var logs = query
             .OrderByDescending(a => a.CreatedAt)
-            .Take(take)
             .Select(a => new AuditLogDto(
                 a.Id,
                 a.UserId,
@@ -58,7 +57,8 @@ internal sealed class GetAuditLogsQueryHandler : IRequestHandler<GetAuditLogsQue
                 a.IpAddress,
                 a.OldValues,
                 a.NewValues,
-                a.CreatedAt))
-            .ToListAsync(cancellationToken);
+                a.CreatedAt));
+
+        return await logs.ToPagedAsync(request.Page, request.PageSize, cancellationToken);
     }
 }

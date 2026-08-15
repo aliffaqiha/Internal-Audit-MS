@@ -8,6 +8,6 @@ export interface AuthUser {
 export interface AuthResponse {
   accessToken: string
   accessTokenExpiresAt: string
-  refreshToken: string
+  refreshToken: string | null
   user: AuthUser
 }

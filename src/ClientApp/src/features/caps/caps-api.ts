@@ -1,4 +1,4 @@
-import { api } from "@/lib/api"
+import { api, type PagedResult } from "@/lib/api"
 
 import type {
   CorrectiveActionDto,
@@ -14,7 +14,7 @@ export interface VerifyPayload {
 
 export const capsApi = {
   list: (params?: CapsFilter) =>
-    api.get<CorrectiveActionDto[]>("/caps", { params }).then((r) => r.data),
+    api.get<PagedResult<CorrectiveActionDto>>("/caps", { params }).then((r) => r.data),
 
   getByFinding: (findingId: string) =>
     api.get<CorrectiveActionDto | null>(`/caps/finding/${findingId}`).then((r) => r.data),

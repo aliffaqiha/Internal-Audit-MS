@@ -33,6 +33,8 @@ export interface CapsFilter {
   status?: CapStatus
   findingId?: string
   departmentId?: string
+  page?: number
+  pageSize?: number
 }
 
 export interface CreateCapPayload {

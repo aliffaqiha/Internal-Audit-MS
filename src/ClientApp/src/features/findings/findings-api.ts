@@ -1,10 +1,10 @@
-import { api } from "@/lib/api"
+import { api, type PagedResult } from "@/lib/api"
 
 import type { CreateFindingPayload, FindingDto, FindingsFilter } from "./types"
 
 export const findingsApi = {
   list: (params?: FindingsFilter) =>
-    api.get<FindingDto[]>("/findings", { params }).then((r) => r.data),
+    api.get<PagedResult<FindingDto>>("/findings", { params }).then((r) => r.data),
 
   get: (id: string) => api.get<FindingDto>(`/findings/${id}`).then((r) => r.data),
 

@@ -7,6 +7,19 @@ const ACCESS_KEY = "iams.accessToken"
 const REFRESH_KEY = "iams.refreshToken"
 const USER_KEY = "iams.user"
 
+export interface PagedResult<T> {
+  items: T[]
+  page: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+}
+
+export interface PaginationParams {
+  page?: number
+  pageSize?: number
+}
+
 export const tokenStore = {
   get accessToken() {
     return localStorage.getItem(ACCESS_KEY)
@@ -16,7 +29,11 @@ export const tokenStore = {
   },
   set(auth: AuthResponse) {
     localStorage.setItem(ACCESS_KEY, auth.accessToken)
-    localStorage.setItem(REFRESH_KEY, auth.refreshToken)
+    if (auth.refreshToken) {
+      localStorage.setItem(REFRESH_KEY, auth.refreshToken)
+    } else {
+      localStorage.removeItem(REFRESH_KEY)
+    }
     localStorage.setItem(USER_KEY, JSON.stringify(auth.user))
   },
   clear() {
@@ -38,6 +55,7 @@ export const tokenStore = {
 export const api = axios.create({
   baseURL: "/api",
   headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 })
 
 api.interceptors.request.use((config) => {
@@ -75,8 +93,9 @@ api.interceptors.response.use(
     const config = error.config as RetryRequestConfig | undefined
     const isAuthRequest = config?.url?.startsWith("/auth/") ?? false
     const isUnauthorized = error.response?.status === 401
+    const canRefresh = Boolean(tokenStore.accessToken) || Boolean(tokenStore.refreshToken)
 
-    if (config && isUnauthorized && !config._retried && !isAuthRequest && tokenStore.refreshToken) {
+    if (config && isUnauthorized && !config._retried && !isAuthRequest && canRefresh) {
       config._retried = true
       try {
         const newToken = await refreshAccessToken()

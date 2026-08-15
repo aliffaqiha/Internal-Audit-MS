@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { toast } from "@/components/ui/toast"
 import { useAuth } from "@/features/auth/auth-context"
 import { CapFormDialog } from "@/features/caps/CapFormDialog"
 import { capsApi } from "@/features/caps/caps-api"
@@ -52,20 +53,26 @@ export function CapsPage() {
   const isVerifier = user?.roles.some((r) => verifierRoles.includes(r)) ?? false
 
   const caps = useQuery({
-    queryKey: ["caps", statusFilter],
-    queryFn: () => capsApi.list(statusFilter ? { status: statusFilter as CapStatus } : undefined),
+    queryKey: ["caps", statusFilter, page],
+    queryFn: () =>
+      capsApi.list({
+        status: statusFilter ? (statusFilter as CapStatus) : undefined,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
   })
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["caps"] })
 
-  const run = async (fn: () => Promise<unknown>) => {
+  const run = async (fn: () => Promise<unknown>, successMsg = "Aksi berhasil diproses.") => {
     try {
       await fn()
       invalidate()
+      toast.success(successMsg)
     } catch (err) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data
         ?.message
-      alert(message ?? "Terjadi kesalahan.")
+      toast.error(message ?? "Terjadi kesalahan.")
     }
   }
 
@@ -75,16 +82,30 @@ export function CapsPage() {
     onSuccess: () => {
       invalidate()
       setDialogOpen(false)
+      toast.success("CAP berhasil diperbarui")
+    },
+    onError: (err) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(message ?? "Gagal memperbarui CAP.")
     },
   })
 
   const verifyMutation = useMutation({
     mutationFn: ({ id, approve, note }: { id: string; approve: boolean; note: string | null }) =>
       capsApi.verify(id, { approve, note }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       invalidate()
       setVerifyTarget(null)
       setRejectTarget(null)
+      if (variables.approve) {
+        toast.success("CAP berhasil disetujui dan ditutup")
+      } else {
+        toast.warning("CAP ditolak dan dibuka kembali untuk perbaikan")
+      }
+    },
+    onError: (err) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(message ?? "Gagal memproses verifikasi CAP.")
     },
   })
 
@@ -93,8 +114,8 @@ export function CapsPage() {
 
   const handleStatusFilter = (v: string) => { setStatusFilter(v); setPage(1) }
 
-  const allCaps = caps.data ?? []
-  const paged = allCaps.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const items = caps.data?.items ?? []
+  const totalCount = caps.data?.totalCount ?? 0
 
   return (
     <div className="grid gap-4">
@@ -125,7 +146,7 @@ export function CapsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ClipboardCheck className="size-5" />
-            {caps.data?.length ?? 0} CAP
+            {totalCount} CAP
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3">
@@ -136,7 +157,7 @@ export function CapsPage() {
                   <Skeleton key={i} className="h-10 w-full rounded-md" />
                 ))}
               </div>
-            ) : !caps.data || caps.data.length === 0 ? (
+            ) : !caps.data || items.length === 0 ? (
               <p className="p-6 text-center text-muted-foreground">Belum ada CAP.</p>
             ) : (
               <Table>
@@ -152,7 +173,7 @@ export function CapsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paged.map((c) => (
+                  {items.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell className="max-w-48">
                         <Link
@@ -252,7 +273,7 @@ export function CapsPage() {
           </div>
           <Pagination
             page={page}
-            total={allCaps.length}
+            total={totalCount}
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
           />

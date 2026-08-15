@@ -1,4 +1,5 @@
 using IAMS.Api.Authorization;
+using IAMS.Application.Common;
 using IAMS.Application.Common.Interfaces;
 using IAMS.Application.Findings;
 using MediatR;
@@ -22,8 +23,8 @@ public sealed class FindingsController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<FindingDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<FindingDto>>> Get(
+    [ProducesResponseType(typeof(PagedResult<FindingDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<FindingDto>>> Get(
         [FromQuery] GetFindingsQuery query, CancellationToken ct)
         => Ok(await _sender.Send(query, ct));
 

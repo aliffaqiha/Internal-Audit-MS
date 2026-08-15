@@ -6,10 +6,10 @@ export const authApi = {
   login: (emailOrUsername: string, password: string) =>
     api.post<AuthResponse>("/auth/login", { emailOrUsername, password }).then((r) => r.data),
 
-  refresh: (refreshToken: string) =>
+  refresh: (refreshToken: string | null) =>
     api.post<AuthResponse>("/auth/refresh", { refreshToken }).then((r) => r.data),
 
-  logout: (refreshToken: string) =>
+  logout: (refreshToken: string | null) =>
     api.post("/auth/logout", { refreshToken }).then(() => undefined),
 
   forgotPassword: (email: string) =>

@@ -27,13 +27,17 @@ export interface FindingDto {
   recommendation: string | null
   dueDate: string | null
   auditPlanId: string | null
+  auditPlanTitle?: string | null
   evidences: FindingEvidenceDto[]
 }
 
 export interface FindingsFilter {
   riskLevel?: RiskLevel
   departmentId?: string
+  auditPlanId?: string
   search?: string
+  page?: number
+  pageSize?: number
 }
 
 export interface CreateFindingPayload {

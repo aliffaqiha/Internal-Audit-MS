@@ -1,6 +1,7 @@
 using IAMS.Api.Authorization;
 using IAMS.Application.AuditReports;
 using IAMS.Application.Audits;
+using IAMS.Application.Common;
 using IAMS.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -23,8 +24,8 @@ public sealed class AuditController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<AuditPlanDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<AuditPlanDto>>> Get(
+    [ProducesResponseType(typeof(PagedResult<AuditPlanDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<AuditPlanDto>>> Get(
         [FromQuery] GetAuditPlansQuery query, CancellationToken ct)
         => Ok(await _sender.Send(query, ct));
 

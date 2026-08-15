@@ -1,4 +1,5 @@
 using IAMS.Api.Authorization;
+using IAMS.Application.Common;
 using IAMS.Application.Common.Interfaces;
 using IAMS.Application.CorrectiveActions;
 using MediatR;
@@ -22,8 +23,8 @@ public sealed class CapsController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<CorrectiveActionDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<CorrectiveActionDto>>> Get(
+    [ProducesResponseType(typeof(PagedResult<CorrectiveActionDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<CorrectiveActionDto>>> Get(
         [FromQuery] GetCapsQuery query, CancellationToken ct)
         => Ok(await _sender.Send(query, ct));
 

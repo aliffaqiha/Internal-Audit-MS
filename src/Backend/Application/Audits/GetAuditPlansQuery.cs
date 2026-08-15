@@ -1,3 +1,4 @@
+using IAMS.Application.Common;
 using IAMS.Application.Common.Interfaces;
 using IAMS.Domain.Enums;
 using MediatR;
@@ -7,9 +8,11 @@ namespace IAMS.Application.Audits;
 
 public sealed record GetAuditPlansQuery(
     AuditPlanStatus? Status = null,
-    Guid? DepartmentId = null) : IRequest<IReadOnlyList<AuditPlanDto>>;
+    Guid? DepartmentId = null,
+    int Page = 1,
+    int PageSize = Pagination.DefaultPageSize) : IRequest<PagedResult<AuditPlanDto>>;
 
-internal sealed class GetAuditPlansQueryHandler : IRequestHandler<GetAuditPlansQuery, IReadOnlyList<AuditPlanDto>>
+internal sealed class GetAuditPlansQueryHandler : IRequestHandler<GetAuditPlansQuery, PagedResult<AuditPlanDto>>
 {
     private readonly IApplicationDbContext _db;
 
@@ -18,7 +21,7 @@ internal sealed class GetAuditPlansQueryHandler : IRequestHandler<GetAuditPlansQ
         _db = db;
     }
 
-    public async Task<IReadOnlyList<AuditPlanDto>> Handle(
+    public async Task<PagedResult<AuditPlanDto>> Handle(
         GetAuditPlansQuery request, CancellationToken cancellationToken)
     {
         var query = _db.AuditPlans.AsNoTracking();
@@ -28,7 +31,7 @@ internal sealed class GetAuditPlansQueryHandler : IRequestHandler<GetAuditPlansQ
         if (request.DepartmentId.HasValue)
             query = query.Where(p => p.DepartmentId == request.DepartmentId);
 
-        return await query
+        var plans = query
             .OrderByDescending(p => p.CreatedAt)
             .Select(p => new AuditPlanDto(
                 p.Id,
@@ -43,11 +46,12 @@ internal sealed class GetAuditPlansQueryHandler : IRequestHandler<GetAuditPlansQ
                 p.Department != null ? p.Department.Name : null,
                 p.Assignments.Select(a => new AuditPlanAssignmentDto(
                     a.UserId,
-                    a.User.Username,
-                    a.User.FullName,
+                    a.User!.Username,
+                    a.User!.FullName,
                     a.RoleInPlan)).ToList(),
                 p.ChecklistItems.Select(i => new AuditPlanChecklistItemDto(
-                    i.Id, i.Question, i.Category, i.IsRequired, i.Status, i.Note)).ToList()))
-            .ToListAsync(cancellationToken);
+                    i.Id, i.Question, i.Category, i.IsRequired, i.Status, i.Note)).ToList()));
+
+        return await plans.ToPagedAsync(request.Page, request.PageSize, cancellationToken);
     }
 }

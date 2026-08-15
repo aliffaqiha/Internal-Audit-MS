@@ -22,4 +22,5 @@ public sealed record FindingDto(
     string? Recommendation,
     DateTimeOffset? DueDate,
     Guid? AuditPlanId,
+    string? AuditPlanTitle,
     IReadOnlyList<FindingEvidenceDto> Evidences);

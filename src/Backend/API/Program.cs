@@ -45,6 +45,10 @@ builder.Services.AddInfrastructure(builder.Configuration);
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("JWT configuration is missing.");
 
+if (string.IsNullOrWhiteSpace(jwt.SecretKey) || jwt.SecretKey.Length < 32)
+    throw new InvalidOperationException(
+        "JWT secret key is missing or too short. Set Jwt:SecretKey (env: JWT_SECRET_KEY) to at least 32 characters.");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

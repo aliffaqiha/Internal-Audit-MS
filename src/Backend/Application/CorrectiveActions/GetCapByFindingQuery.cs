@@ -1,3 +1,4 @@
+using IAMS.Application.Common.DataScoping;
 using IAMS.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -9,15 +10,23 @@ public sealed record GetCapByFindingQuery(Guid FindingId) : IRequest<CorrectiveA
 internal sealed class GetCapByFindingQueryHandler : IRequestHandler<GetCapByFindingQuery, CorrectiveActionDto?>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetCapByFindingQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetCapByFindingQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
 
     public async Task<CorrectiveActionDto?> Handle(GetCapByFindingQuery request, CancellationToken cancellationToken)
     {
+        var scope = await CurrentUserAccess.ResolveAsync(_db, _currentUser, cancellationToken);
+
         var cap = await _db.CorrectiveActions
             .AsNoTracking()
             .Include(c => c.Finding)
             .Where(c => c.FindingId == request.FindingId)
+            .RestrictCaps(scope)
             .Select(c => new CorrectiveActionDto(
                 c.Id,
                 c.FindingId,

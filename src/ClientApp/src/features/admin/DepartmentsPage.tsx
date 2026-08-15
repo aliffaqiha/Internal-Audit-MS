@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { toast } from "@/components/ui/toast"
 import { adminApi } from "@/features/admin/admin-api"
 import { DepartmentFormDialog } from "@/features/admin/DepartmentFormDialog"
 import type { DepartmentDto } from "@/features/admin/types"
@@ -39,8 +40,13 @@ export function DepartmentsPage() {
   const saveDepartment = useMutation({
     mutationFn: ({ id, payload }: { id?: string; payload: { name: string; code: string } }) =>
       id ? adminApi.updateDepartment(id, payload) : adminApi.createDepartment(payload),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["departments"] })
+      toast.success(variables.id ? "Departemen berhasil diperbarui" : "Departemen baru berhasil ditambahkan")
+    },
+    onError: (err) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(message ?? "Gagal menyimpan departemen.")
     },
   })
 
@@ -49,6 +55,11 @@ export function DepartmentsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] })
       setDeleteTarget(null)
+      toast.success("Departemen berhasil dihapus")
+    },
+    onError: (err) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(message ?? "Gagal menghapus departemen.")
     },
   })
 

@@ -1,4 +1,5 @@
 using FluentValidation;
+using IAMS.Application.Common.DataScoping;
 using IAMS.Application.Common.Exceptions;
 using IAMS.Application.Common.Interfaces;
 using IAMS.Domain.Entities;
@@ -30,18 +31,24 @@ internal sealed class CreateCapCommandHandler : IRequestHandler<CreateCapCommand
 {
     private readonly IApplicationDbContext _db;
     private readonly IAuditService _audit;
+    private readonly ICurrentUserService _currentUser;
 
-    public CreateCapCommandHandler(IApplicationDbContext db, IAuditService audit)
+    public CreateCapCommandHandler(IApplicationDbContext db, IAuditService audit, ICurrentUserService currentUser)
     {
         _db = db;
         _audit = audit;
+        _currentUser = currentUser;
     }
 
     public async Task<Guid> Handle(CreateCapCommand request, CancellationToken cancellationToken)
     {
+        var scope = await CurrentUserAccess.ResolveAsync(_db, _currentUser, cancellationToken);
+
         var finding = await _db.Findings
             .FirstOrDefaultAsync(f => f.Id == request.FindingId, cancellationToken)
             ?? throw new KeyNotFoundException("Temuan tidak ditemukan.");
+
+        CurrentUserAccess.EnsureCanAccessFinding(scope, finding.DepartmentId);
 
         var existing = await _db.CorrectiveActions
             .AnyAsync(c => c.FindingId == request.FindingId, cancellationToken);

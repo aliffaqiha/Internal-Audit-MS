@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { toast } from "@/components/ui/toast"
 import { adminApi } from "@/features/admin/admin-api"
 import { UserFormDialog } from "@/features/admin/UserFormDialog"
 import type { CreateUserPayload, UpdateUserPayload, UserDto } from "@/features/admin/types"
@@ -39,7 +40,17 @@ export function UsersPage() {
   const [deleteTarget, setDeleteTarget] = useState<UserDto | null>(null)
   const [page, setPage] = useState(1)
 
-  const users = useQuery({ queryKey: ["users"], queryFn: adminApi.users })
+  const users = useQuery({
+    queryKey: ["users", search, departmentFilter, roleFilter, page],
+    queryFn: () =>
+      adminApi.users({
+        search: search || undefined,
+        departmentId: departmentFilter || undefined,
+        roleId: roleFilter || undefined,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
+  })
   const roles = useQuery({ queryKey: ["roles"], queryFn: adminApi.roles })
   const departments = useQuery({ queryKey: ["departments"], queryFn: adminApi.departments })
 
@@ -54,8 +65,13 @@ export function UsersPage() {
       if (id) return adminApi.updateUser(id, payload as UpdateUserPayload)
       return adminApi.createUser(payload as CreateUserPayload)
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["users"] })
+      toast.success(variables.id ? "Pengguna berhasil diperbarui" : "Pengguna baru berhasil ditambahkan")
+    },
+    onError: (err) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(message ?? "Gagal menyimpan pengguna.")
     },
   })
 
@@ -64,23 +80,16 @@ export function UsersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] })
       setDeleteTarget(null)
+      toast.success("Akun pengguna berhasil dinonaktifkan")
+    },
+    onError: (err) => {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      toast.error(message ?? "Gagal menonaktifkan pengguna.")
     },
   })
 
-  const filtered = (users.data ?? []).filter((u) => {
-    const q = search.trim().toLowerCase()
-    const matchesSearch =
-      q === "" ||
-      u.username.toLowerCase().includes(q) ||
-      u.fullName.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q)
-    const matchesDepartment =
-      departmentFilter === "" || u.departmentId === departmentFilter
-    const matchesRole = roleFilter === "" || u.roles.some((r) => r.id === roleFilter)
-    return matchesSearch && matchesDepartment && matchesRole
-  })
-
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const items = users.data?.items ?? []
+  const totalCount = users.data?.totalCount ?? 0
 
   const handleFilterChange = (setter: (v: string) => void) => (v: string) => {
     setter(v)
@@ -163,7 +172,7 @@ export function UsersPage() {
                   <Skeleton key={i} className="h-10 w-full rounded-md" />
                 ))}
               </div>
-            ) : filtered.length === 0 ? (
+            ) : items.length === 0 ? (
               <p className="p-6 text-center text-muted-foreground">Tidak ada pengguna ditemukan.</p>
             ) : (
               <Table>
@@ -179,7 +188,7 @@ export function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paged.map((user) => (
+                  {items.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.fullName}</TableCell>
                       <TableCell>{user.username}</TableCell>
@@ -224,7 +233,7 @@ export function UsersPage() {
           </div>
           <Pagination
             page={page}
-            total={filtered.length}
+            total={totalCount}
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
           />

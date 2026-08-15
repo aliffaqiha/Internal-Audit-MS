@@ -32,8 +32,8 @@ internal sealed class GetAuditPlanByIdQueryHandler : IRequestHandler<GetAuditPla
                 p.Department != null ? p.Department.Name : null,
                 p.Assignments.Select(a => new AuditPlanAssignmentDto(
                     a.UserId,
-                    a.User.Username,
-                    a.User.FullName,
+                    a.User!.Username,
+                    a.User!.FullName,
                     a.RoleInPlan)).ToList(),
                 p.ChecklistItems.Select(i => new AuditPlanChecklistItemDto(
                     i.Id, i.Question, i.Category, i.IsRequired, i.Status, i.Note)).ToList()))
