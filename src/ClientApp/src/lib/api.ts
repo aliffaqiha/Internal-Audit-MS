@@ -91,11 +91,12 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const config = error.config as RetryRequestConfig | undefined
-    const isAuthRequest = config?.url?.startsWith("/auth/") ?? false
+    const isLoginOrRefresh =
+      config?.url === "/auth/login" || config?.url === "/auth/refresh"
     const isUnauthorized = error.response?.status === 401
     const canRefresh = Boolean(tokenStore.accessToken) || Boolean(tokenStore.refreshToken)
 
-    if (config && isUnauthorized && !config._retried && !isAuthRequest && canRefresh) {
+    if (config && isUnauthorized && !config._retried && !isLoginOrRefresh && canRefresh) {
       config._retried = true
       try {
         const newToken = await refreshAccessToken()
@@ -110,7 +111,7 @@ api.interceptors.response.use(
       }
     }
 
-    if (isUnauthorized && isAuthRequest && config?.url === "/auth/refresh") {
+    if (isUnauthorized && config?.url === "/auth/refresh") {
       tokenStore.clear()
       if (typeof window !== "undefined") {
         window.location.href = "/login"

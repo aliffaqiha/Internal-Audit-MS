@@ -42,8 +42,12 @@ export function LoginPage() {
 
   const onSubmit = async (values: LoginForm) => {
     try {
-      await login(values.emailOrUsername, values.password)
-      navigate(from, { replace: true })
+      const user = await login(values.emailOrUsername, values.password)
+      // A user who already changed their password must not be sent back to the
+      // change-password screen (the ProtectedRoute may have recorded it as the
+      // original destination when the session was cleared).
+      const target = from === "/change-password" && !user.mustChangePassword ? "/" : from
+      navigate(target, { replace: true })
     } catch (err) {
       const status = (err as { response?: { status?: number } })?.response?.status
       setError("root", {

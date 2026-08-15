@@ -15,7 +15,7 @@ interface AuthContextValue {
   user: AuthUser | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (emailOrUsername: string, password: string) => Promise<void>
+  login: (emailOrUsername: string, password: string) => Promise<AuthUser>
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   logout: () => Promise<void>
 }
@@ -38,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await authApi.login(emailOrUsername, password)
       tokenStore.set(data)
       setUser(data.user)
+      return data.user
     } finally {
       setIsLoading(false)
     }
