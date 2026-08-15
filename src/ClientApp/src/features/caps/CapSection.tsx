@@ -71,12 +71,14 @@ export function CapSection({ findingId }: { findingId: string }) {
 
   const handleVerify = (approve: boolean) => {
     if (!cap.data) return
-    if (approve && !confirm("Setujui dan tutup CAP ini?")) return
-    const note = approve
-      ? null
-      : prompt("Alasan penolakan (CAP akan dibuka kembali)?", "")
+    if (approve) {
+      if (!confirm("Setujui dan tutup CAP ini?")) return
+      run(() => capsApi.verify(cap.data!.id, { approve: true, note: null }))
+      return
+    }
+    const note = prompt("Alasan penolakan (CAP akan dibuka kembali)?", "")
     if (note === null) return
-    run(() => capsApi.verify(cap.data!.id, { approve, note: approve ? null : note || null }))
+    run(() => capsApi.verify(cap.data!.id, { approve: false, note: note || null }))
   }
 
   const handleFile = (file: File | undefined) => {
@@ -168,12 +170,14 @@ export function CapSection({ findingId }: { findingId: string }) {
               <div className="flex items-center gap-2">
                 <Paperclip className="size-4 text-muted-foreground" />
                 <span className="truncate">{data.attachment.fileName}</span>
-                <a href={capsApi.downloadUrl(data.id)}>
-                  <Button variant="outline" size="sm">
-                    <Download data-icon="inline-start" />
-                    Unduh
-                  </Button>
-                </a>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => capsApi.download(data.id, data.attachment!.fileName ?? "attachment")}
+                >
+                  <Download data-icon="inline-start" />
+                  Unduh
+                </Button>
               </div>
             )}
 

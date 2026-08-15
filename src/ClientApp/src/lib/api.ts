@@ -58,6 +58,16 @@ export const api = axios.create({
   withCredentials: true,
 })
 
+export async function downloadBlob(url: string, fileName: string) {
+  const res = await api.get<Blob>(url, { responseType: "blob" })
+  const blobUrl = URL.createObjectURL(res.data)
+  const a = document.createElement("a")
+  a.href = blobUrl
+  a.download = fileName
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+}
+
 api.interceptors.request.use((config) => {
   const token = tokenStore.accessToken
   if (token) {

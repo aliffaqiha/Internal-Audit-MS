@@ -40,8 +40,9 @@ internal sealed class GetAuditPlanByIdQueryHandler : IRequestHandler<GetAuditPla
                     a.User!.Username,
                     a.User!.FullName,
                     a.RoleInPlan)).ToList(),
-                p.ChecklistItems.Select(i => new AuditPlanChecklistItemDto(
-                    i.Id, i.Question, i.Category, i.IsRequired, i.Status, i.Note)).ToList()))
+                p.ChecklistItems.OrderBy(i => i.CreatedAt).ThenBy(i => i.Id)
+                    .Select(i => new AuditPlanChecklistItemDto(
+                        i.Id, i.Question, i.Category, i.IsRequired, i.Status, i.Note)).ToList()))
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new KeyNotFoundException("Rencana audit tidak ditemukan.");
 

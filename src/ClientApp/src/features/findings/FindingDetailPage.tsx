@@ -204,12 +204,14 @@ export function FindingDetailPage() {
                       {new Date(e.uploadedAt).toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <a href={findingsApi.downloadUrl(id, e.id)}>
-                        <Button variant="outline" size="sm">
-                          <Download data-icon="inline-start" />
-                          Unduh
-                        </Button>
-                      </a>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => findingsApi.download(id, e.id, e.originalFileName)}
+                      >
+                        <Download data-icon="inline-start" />
+                        Unduh
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

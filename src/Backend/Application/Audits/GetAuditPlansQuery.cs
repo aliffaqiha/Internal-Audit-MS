@@ -54,8 +54,9 @@ internal sealed class GetAuditPlansQueryHandler : IRequestHandler<GetAuditPlansQ
                     a.User!.Username,
                     a.User!.FullName,
                     a.RoleInPlan)).ToList(),
-                p.ChecklistItems.Select(i => new AuditPlanChecklistItemDto(
-                    i.Id, i.Question, i.Category, i.IsRequired, i.Status, i.Note)).ToList()));
+                p.ChecklistItems.OrderBy(i => i.CreatedAt).ThenBy(i => i.Id)
+                    .Select(i => new AuditPlanChecklistItemDto(
+                        i.Id, i.Question, i.Category, i.IsRequired, i.Status, i.Note)).ToList()));
 
         return await plans.ToPagedAsync(request.Page, request.PageSize, cancellationToken);
     }

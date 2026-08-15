@@ -1,4 +1,4 @@
-import { api, type PagedResult } from "@/lib/api"
+import { api, downloadBlob, type PagedResult } from "@/lib/api"
 
 import type { CreateFindingPayload, FindingDto, FindingsFilter } from "./types"
 
@@ -26,6 +26,6 @@ export const findingsApi = {
       .then((r) => r.data.id)
   },
 
-  downloadUrl: (findingId: string, evidenceId: string) =>
-    `/api/findings/${findingId}/evidence/${evidenceId}`,
+  download: (findingId: string, evidenceId: string, fileName: string) =>
+    downloadBlob(`/findings/${findingId}/evidence/${evidenceId}`, fileName),
 }

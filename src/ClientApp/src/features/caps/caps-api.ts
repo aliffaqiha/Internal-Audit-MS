@@ -1,4 +1,4 @@
-import { api, type PagedResult } from "@/lib/api"
+import { api, downloadBlob, type PagedResult } from "@/lib/api"
 
 import type {
   CorrectiveActionDto,
@@ -38,5 +38,6 @@ export const capsApi = {
     })
   },
 
-  downloadUrl: (capId: string) => `/api/caps/${capId}/attachment`,
+  download: (capId: string, fileName: string) =>
+    downloadBlob(`/caps/${capId}/attachment`, fileName),
 }
