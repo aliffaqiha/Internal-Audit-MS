@@ -12,11 +12,11 @@ public sealed class SignalRNotificationNotifier : INotificationNotifier
 
     public SignalRNotificationNotifier(IHubContext<NotificationHub> hub) => _hub = hub;
 
-    public Task SendToUserAsync(Guid userId, NotificationDto notification, CancellationToken cancellationToken = default)
+    public Task SendToUserAsync(Guid userId, NotificationPushedDto notification, CancellationToken cancellationToken = default)
         => _hub.Clients.Group(NotificationHub.GroupName(userId))
             .SendAsync("NotificationReceived", notification, cancellationToken);
 
-    public Task SendToUsersAsync(IReadOnlyCollection<Guid> userIds, NotificationDto notification, CancellationToken cancellationToken = default)
+    public Task SendToUsersAsync(IReadOnlyCollection<Guid> userIds, NotificationPushedDto notification, CancellationToken cancellationToken = default)
     {
         var groups = userIds.Distinct().Select(NotificationHub.GroupName);
         return _hub.Clients.Groups(groups).SendAsync("NotificationReceived", notification, cancellationToken);

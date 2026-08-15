@@ -26,7 +26,6 @@ internal sealed class GetCapByFindingQueryHandler : IRequestHandler<GetCapByFind
             .AsNoTracking()
             .Include(c => c.Finding)
             .Where(c => c.FindingId == request.FindingId)
-            .RestrictCaps(scope)
             .Select(c => new CorrectiveActionDto(
                 c.Id,
                 c.FindingId,
@@ -43,6 +42,14 @@ internal sealed class GetCapByFindingQueryHandler : IRequestHandler<GetCapByFind
                     ? new CapAttachmentDto(c.AttachmentFileName, c.AttachmentContentType, c.AttachmentSizeBytes, c.AttachmentUploadedAt)
                     : null))
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (cap is not null)
+        {
+            var finding = await _db.Findings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(f => f.Id == request.FindingId, cancellationToken);
+            CurrentUserAccess.EnsureCanAccessFinding(scope, finding?.DepartmentId);
+        }
 
         return cap;
     }

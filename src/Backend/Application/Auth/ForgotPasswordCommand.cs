@@ -24,17 +24,20 @@ internal sealed class ForgotPasswordCommandHandler : IRequestHandler<ForgotPassw
     private readonly ICurrentUserService _currentUser;
     private readonly IEmailService _email;
     private readonly IAuditService _audit;
+    private readonly IAppSettings _appSettings;
 
     public ForgotPasswordCommandHandler(
         IApplicationDbContext db,
         ICurrentUserService currentUser,
         IEmailService email,
-        IAuditService audit)
+        IAuditService audit,
+        IAppSettings appSettings)
     {
         _db = db;
         _currentUser = currentUser;
         _email = email;
         _audit = audit;
+        _appSettings = appSettings;
     }
 
     public async Task Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
@@ -59,7 +62,7 @@ internal sealed class ForgotPasswordCommandHandler : IRequestHandler<ForgotPassw
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        var resetUrl = $"http://localhost:5173/reset-password?token={rawToken}";
+        var resetUrl = $"{_appSettings.ClientBaseUrl}/reset-password?token={rawToken}";
         await _email.SendAsync(
             user.Email,
             "IAMS - Password Reset",

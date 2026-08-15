@@ -33,7 +33,7 @@ public sealed class NotificationService : INotificationService
         if (users.Count == 0)
             return;
 
-        var created = new List<(Guid UserId, Domain.Entities.Notification Entity, NotificationDto Dto)>();
+        var created = new List<(Guid UserId, Domain.Entities.Notification Entity, NotificationDto Dto, NotificationPushedDto Pushed)>();
 
         foreach (var userId in users)
         {
@@ -59,7 +59,8 @@ public sealed class NotificationService : INotificationService
 
             _db.Notifications.Add(entity);
             created.Add((userId, entity,
-                new NotificationDto(entity.Id, entity.Type, entity.Title, entity.Message, entity.Link, entity.IsRead, entity.CreatedAt)));
+                new NotificationDto(entity.Id, entity.Type, entity.Title, entity.Message, entity.Link, entity.IsRead, entity.CreatedAt),
+                new NotificationPushedDto(entity.Id, entity.Type, entity.Link)));
         }
 
         if (created.Count == 0)
@@ -67,7 +68,7 @@ public sealed class NotificationService : INotificationService
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        foreach (var (userId, _, dto) in created)
-            await _notifier.SendToUserAsync(userId, dto, cancellationToken);
+        foreach (var (userId, _, _, pushed) in created)
+            await _notifier.SendToUserAsync(userId, pushed, cancellationToken);
     }
 }

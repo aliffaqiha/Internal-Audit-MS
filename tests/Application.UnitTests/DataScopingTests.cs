@@ -58,6 +58,31 @@ public class DataScopingTests
     }
 
     [Fact]
+    public void RestrictFindings_FullAccess_ReturnsAll()
+    {
+        var findings = new List<Finding>
+        {
+            new() { DepartmentId = DeptA },
+            new() { DepartmentId = DeptB },
+        }.AsQueryable();
+
+        Assert.Equal(2, findings.RestrictFindings(FullAccess).Count());
+    }
+
+    [Fact]
+    public void RestrictCaps_Restricted_OnlyOwnDepartment()
+    {
+        var caps = new List<CorrectiveAction>
+        {
+            new() { Finding = new Finding { DepartmentId = DeptA } },
+            new() { Finding = new Finding { DepartmentId = DeptB } },
+        }.AsQueryable();
+
+        var result = caps.RestrictCaps(Restricted).ToList();
+        Assert.Single(result);
+    }
+
+    [Fact]
     public void EnsureCanAccessPlan_RestrictedOtherDepartment_ThrowsForbidden()
     {
         var ex = Assert.Throws<ForbiddenAccessException>(
@@ -76,5 +101,11 @@ public class DataScopingTests
     {
         Assert.Throws<ForbiddenAccessException>(
             () => CurrentUserAccess.EnsureCanAccessFinding(Restricted, DeptB));
+    }
+
+    [Fact]
+    public void EnsureCanAccessFinding_RestrictedOwnDepartment_DoesNotThrow()
+    {
+        CurrentUserAccess.EnsureCanAccessFinding(Restricted, DeptA);
     }
 }

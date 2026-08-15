@@ -6,7 +6,7 @@ namespace IAMS.Application.Common.Interfaces;
 /// <remarks>Backed by <c>NotificationHub</c>; a no-op when nobody is connected.</remarks>
 public interface INotificationNotifier
 {
-    Task SendToUserAsync(Guid userId, NotificationDto notification, CancellationToken cancellationToken = default);
+    Task SendToUserAsync(Guid userId, NotificationPushedDto notification, CancellationToken cancellationToken = default);
 
-    Task SendToUsersAsync(IReadOnlyCollection<Guid> userIds, NotificationDto notification, CancellationToken cancellationToken = default);
+    Task SendToUsersAsync(IReadOnlyCollection<Guid> userIds, NotificationPushedDto notification, CancellationToken cancellationToken = default);
 }

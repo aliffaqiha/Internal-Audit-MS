@@ -18,6 +18,9 @@ public sealed class MinioOptions
 
 public sealed class ObjectStorageService : IObjectStorageService, IDisposable
 {
+    /// <summary>Absolute per-object upload cap as a last line of defense.</summary>
+    public const long MaxUploadBytes = 64 * 1024 * 1024; // 64 MB
+
     private readonly IMinioClient _client;
     private readonly string _bucket;
     private readonly SemaphoreSlim _bucketLock = new(1, 1);
@@ -61,6 +64,9 @@ public sealed class ObjectStorageService : IObjectStorageService, IDisposable
 
     public async Task UploadAsync(string objectName, Stream content, string contentType, CancellationToken cancellationToken = default)
     {
+        if (content.Length > MaxUploadBytes)
+            throw new InvalidOperationException($"Object exceeds the maximum allowed size of {MaxUploadBytes / (1024 * 1024)} MB.");
+
         await EnsureBucketAsync(cancellationToken);
 
         var args = new PutObjectArgs()

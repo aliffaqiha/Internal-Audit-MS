@@ -26,7 +26,6 @@ internal sealed class GetFindingByIdQueryHandler : IRequestHandler<GetFindingByI
             .AsNoTracking()
             .Include(f => f.Evidences)
             .Where(f => f.Id == request.Id)
-            .RestrictFindings(scope)
             .Select(f => new FindingDto(
                 f.Id,
                 f.Title,
@@ -52,6 +51,8 @@ internal sealed class GetFindingByIdQueryHandler : IRequestHandler<GetFindingByI
                     .ToList()))
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new KeyNotFoundException("Temuan tidak ditemukan.");
+
+        CurrentUserAccess.EnsureCanAccessFinding(scope, finding.DepartmentId);
 
         return finding;
     }

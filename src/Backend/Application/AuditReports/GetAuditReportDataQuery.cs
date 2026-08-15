@@ -1,3 +1,4 @@
+using IAMS.Application.Common.DataScoping;
 using IAMS.Application.Common.Interfaces;
 using IAMS.Application.Common.Exceptions;
 using MediatR;
@@ -11,17 +12,26 @@ public sealed record GetAuditReportDataQuery(Guid AuditPlanId) : IRequest<AuditR
 internal sealed class GetAuditReportDataQueryHandler : IRequestHandler<GetAuditReportDataQuery, AuditReportDataDto>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetAuditReportDataQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetAuditReportDataQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
 
     public async Task<AuditReportDataDto> Handle(GetAuditReportDataQuery request, CancellationToken cancellationToken)
     {
+        var scope = await CurrentUserAccess.ResolveAsync(_db, _currentUser, cancellationToken);
+
         var plan = await _db.AuditPlans.AsNoTracking()
             .Include(p => p.Department)
             .Include(p => p.Assignments).ThenInclude(a => a.User)
             .Include(p => p.ChecklistItems)
             .FirstOrDefaultAsync(p => p.Id == request.AuditPlanId, cancellationToken)
             ?? throw new KeyNotFoundException("Rencana audit tidak ditemukan.");
+
+        CurrentUserAccess.EnsureCanAccessPlan(scope, plan.DepartmentId);
 
         if (plan.Status == Domain.Enums.AuditPlanStatus.Draft
             || plan.Status == Domain.Enums.AuditPlanStatus.Submitted)

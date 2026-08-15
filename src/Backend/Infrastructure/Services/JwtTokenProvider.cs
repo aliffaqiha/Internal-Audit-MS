@@ -32,10 +32,29 @@ public sealed class JwtTokenProvider : ITokenProvider
         foreach (var role in roles)
             claims.Add(new Claim(ClaimTypes.Role, role));
 
+        var expiresAt = DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes);
+        return CreateToken(claims, expiresAt);
+    }
+
+    public AccessTokenInfo CreateSignalRToken(Guid userId, string username)
+    {
+        // Minimal claims: identity only, no roles or email. Short lifetime.
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new(JwtRegisteredClaimNames.UniqueName, username),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+        var expiresAt = DateTime.UtcNow.AddMinutes(Math.Max(1, _options.SignalRTokenMinutes));
+        return CreateToken(claims, expiresAt);
+    }
+
+    private AccessTokenInfo CreateToken(IReadOnlyList<Claim> claims, DateTime expiresAt)
+    {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var expiresAt = DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes);
         var token = new JwtSecurityToken(
             issuer: _options.Issuer,
             audience: _options.Audience,

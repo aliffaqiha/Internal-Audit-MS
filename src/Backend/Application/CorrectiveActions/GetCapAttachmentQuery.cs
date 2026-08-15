@@ -31,10 +31,10 @@ internal sealed class GetCapAttachmentQueryHandler : IRequestHandler<GetCapAttac
         var cap = await _db.CorrectiveActions
             .AsNoTracking()
             .Include(c => c.Finding)
-            .Where(c => c.Id == request.Id)
-            .RestrictCaps(scope)
-            .FirstOrDefaultAsync(cancellationToken)
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken)
             ?? throw new KeyNotFoundException("Rencana tindak lanjut tidak ditemukan.");
+
+        CurrentUserAccess.EnsureCanAccessFinding(scope, cap.Finding?.DepartmentId);
 
         if (cap.AttachmentObjectName == null)
             throw new KeyNotFoundException("CAP ini belum memiliki lampiran.");

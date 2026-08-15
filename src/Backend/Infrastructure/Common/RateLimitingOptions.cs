@@ -15,4 +15,13 @@ public sealed class RateLimitingOptions
 
     /// <summary>Window (minutes) for the login limit.</summary>
     public int LoginWindowMinutes { get; set; } = 1;
+
+    /// <summary>
+    /// Per-IP limit for other sensitive auth endpoints (refresh, forgot/reset password).
+    /// Prevents abuse of token refresh and password-reset flows.
+    /// </summary>
+    public int AuthPermitLimit { get; set; } = 20;
+
+    /// <summary>Window (minutes) for the auth endpoint limit.</summary>
+    public int AuthWindowMinutes { get; set; } = 1;
 }

@@ -33,8 +33,17 @@ internal sealed class LogoutCommandHandler : IRequestHandler<LogoutCommand>
         var token = await _db.RefreshTokens
             .FirstOrDefaultAsync(t => t.TokenHash == hash, cancellationToken);
 
+        // Logging out invalidates every active session for the user, not just the
+        // presented token, so a stolen sibling refresh token cannot survive logout.
         if (token is not null)
-            token.RevokedAt = DateTimeOffset.UtcNow;
+        {
+            var family = await _db.RefreshTokens
+                .Where(t => t.UserId == token.UserId && t.RevokedAt == null)
+                .ToListAsync(cancellationToken);
+            var now = DateTimeOffset.UtcNow;
+            foreach (var t in family)
+                t.RevokedAt = now;
+        }
 
         await _db.SaveChangesAsync(cancellationToken);
         await _audit.LogAsync("Logout", nameof(User), token?.UserId.ToString(), cancellationToken: cancellationToken);

@@ -11,6 +11,12 @@ public sealed class JwtOptions
     public int RefreshTokenDays { get; set; } = 7;
 
     /// <summary>
+    /// Lifetime of the dedicated SignalR hub token. Kept short because the token
+    /// rides in the WebSocket query string and must be renewed frequently.
+    /// </summary>
+    public int SignalRTokenMinutes { get; set; } = 2;
+
+    /// <summary>
     /// When true the refresh token is issued as an httpOnly cookie instead of
     /// being returned in the response body (XSS-resistant).
     /// </summary>

@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<ITokenProvider, JwtTokenProvider>();
         services.AddScoped<IPasswordHasher, PasswordHasherService>();
         services.AddScoped<IAuditService, AuditService>();
+        services.AddSingleton<IAppSettings, AppSettings>();
 
         // Async email pipeline: enqueue immediately, deliver in the background.
         services.AddSingleton<IEmailQueue, EmailQueue>();

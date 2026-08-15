@@ -48,6 +48,8 @@ internal sealed class ResetPasswordCommandHandler : IRequestHandler<ResetPasswor
 
         resetToken.User.PasswordHash = _passwordHasher.Hash(request.NewPassword);
         resetToken.User.MustChangePassword = false;
+        resetToken.User.FailedLoginCount = 0;
+        resetToken.User.LockoutEndUtc = null;
         resetToken.UsedAt = DateTimeOffset.UtcNow;
 
         // Invalidate all existing refresh tokens after a password reset.

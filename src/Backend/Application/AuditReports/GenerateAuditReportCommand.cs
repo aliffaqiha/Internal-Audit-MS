@@ -1,3 +1,4 @@
+using IAMS.Application.Common.DataScoping;
 using IAMS.Application.Common.Interfaces;
 using IAMS.Application.Common.Exceptions;
 using IAMS.Domain.Entities;
@@ -19,6 +20,7 @@ internal sealed class GenerateAuditReportCommandHandler : IRequestHandler<Genera
     private readonly IAuditService _audit;
     private readonly IDateTimeService _dateTime;
     private readonly IPublisher _publisher;
+    private readonly ICurrentUserService _currentUser;
 
     public GenerateAuditReportCommandHandler(
         IApplicationDbContext db,
@@ -27,7 +29,8 @@ internal sealed class GenerateAuditReportCommandHandler : IRequestHandler<Genera
         IObjectStorageService storage,
         IAuditService audit,
         IDateTimeService dateTime,
-        IPublisher publisher)
+        IPublisher publisher,
+        ICurrentUserService currentUser)
     {
         _db = db;
         _sender = sender;
@@ -36,13 +39,18 @@ internal sealed class GenerateAuditReportCommandHandler : IRequestHandler<Genera
         _audit = audit;
         _dateTime = dateTime;
         _publisher = publisher;
+        _currentUser = currentUser;
     }
 
     public async Task<AuditReportDto> Handle(GenerateAuditReportCommand request, CancellationToken cancellationToken)
     {
+        var scope = await CurrentUserAccess.ResolveAsync(_db, _currentUser, cancellationToken);
+
         var plan = await _db.AuditPlans
             .FirstOrDefaultAsync(p => p.Id == request.AuditPlanId, cancellationToken)
             ?? throw new KeyNotFoundException("Rencana audit tidak ditemukan.");
+
+        CurrentUserAccess.EnsureCanAccessPlan(scope, plan.DepartmentId);
 
         if (plan.Status is AuditPlanStatus.Draft or AuditPlanStatus.Submitted)
         {

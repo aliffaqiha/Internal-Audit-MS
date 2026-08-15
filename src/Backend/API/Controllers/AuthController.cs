@@ -37,6 +37,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("refresh")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AuthResponse>> Refresh([FromBody] RefreshTokenCommand? command, CancellationToken ct)
@@ -61,11 +62,21 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("forgot-password")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordCommand command, CancellationToken ct)
     {
         await _sender.Send(command, ct);
         return Accepted();
+    }
+
+    [HttpPost("signalr-token")]
+    [Authorize]
+    [ProducesResponseType(typeof(SignalRTokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<SignalRTokenResponse>> SignalRToken(CancellationToken ct)
+    {
+        return Ok(await _sender.Send(new GetSignalRTokenQuery(), ct));
     }
 
     [HttpPost("change-password")]
@@ -81,6 +92,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("reset-password")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ResetPassword(ResetPasswordCommand command, CancellationToken ct)

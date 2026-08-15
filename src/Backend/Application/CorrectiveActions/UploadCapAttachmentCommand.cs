@@ -69,6 +69,16 @@ internal sealed class UploadCapAttachmentCommandHandler : IRequestHandler<Upload
                 ["Content"] = new[] { $"Ukuran file maksimal {EvidenceFileRules.MaxSizeBytes / (1024 * 1024)} MB." }
             });
 
+        var family = EvidenceFileRules.SniffFileFamily(request.Content);
+        if (family == EvidenceFileRules.FileFamily.Unknown
+            || !EvidenceFileRules.MatchesFamily(request.ContentType, family))
+        {
+            throw new AppValidationException(new Dictionary<string, string[]>
+            {
+                ["Content"] = new[] { "Isi file tidak sesuai dengan tipe yang dipilih." }
+            });
+        }
+
         var safeName = EvidenceFileRules.SanitizeFileName(request.OriginalFileName);
         var ext = EvidenceFileRules.ExtensionFor(request.ContentType) ?? ".bin";
         var objectName = $"caps/{cap.Id}/{Guid.NewGuid():N}{ext}";

@@ -31,10 +31,12 @@ internal sealed class GetEvidenceDownloadQueryHandler : IRequestHandler<GetEvide
 
         var evidence = await _db.FindingEvidences
             .AsNoTracking()
-            .Where(e => e.FindingId == request.FindingId && e.Id == request.EvidenceId)
-            .Where(e => scope.HasFullAccess || (e.Finding != null && e.Finding.DepartmentId == scope.DepartmentId))
-            .FirstOrDefaultAsync(cancellationToken)
+            .Include(e => e.Finding)
+            .FirstOrDefaultAsync(
+                e => e.FindingId == request.FindingId && e.Id == request.EvidenceId, cancellationToken)
             ?? throw new KeyNotFoundException("Bukti tidak ditemukan.");
+
+        CurrentUserAccess.EnsureCanAccessFinding(scope, evidence.Finding?.DepartmentId);
 
         return new EvidenceDownloadDto(
             evidence.Id,

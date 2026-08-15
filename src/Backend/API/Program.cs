@@ -150,6 +150,17 @@ builder.Services.AddRateLimiter(options =>
             QueueLimit = 0,
             AutoReplenishment = true
         }));
+
+    // Policy for sensitive auth endpoints (refresh, forgot/reset password).
+    options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = rateLimit.AuthPermitLimit,
+            Window = TimeSpan.FromMinutes(rateLimit.AuthWindowMinutes),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
 });
 
 // Health checks
