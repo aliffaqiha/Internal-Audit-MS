@@ -85,16 +85,43 @@ builder.Services.AddAuthorization(options => options.Register());
 
 builder.Services.AddSignalR();
 
-// Rate limiting (anti brute-force)
+// Rate limiting (anti brute-force + global abuse protection)
+var rateLimit = builder.Configuration.GetSection(RateLimitingOptions.SectionName)
+    .Get<RateLimitingOptions>() ?? new RateLimitingOptions();
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+            context.HttpContext.Response.Headers.RetryAfter =
+                ((int)retryAfter.TotalSeconds).ToString();
+        context.HttpContext.Response.ContentType = "application/json; charset=utf-8";
+        await context.HttpContext.Response.WriteAsync(
+            "{\"message\":\"Terlalu banyak permintaan. Silakan coba lagi nanti.\"}",
+            cancellationToken);
+    };
+
+    // Global default: applied to every endpoint unless a named policy overrides it.
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
+        context => RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = rateLimit.GlobalPermitLimit,
+                Window = TimeSpan.FromMinutes(rateLimit.GlobalWindowMinutes),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+
+    // Stricter policy for the login endpoint (anti brute-force).
     options.AddPolicy("login", context => RateLimitPartition.GetFixedWindowLimiter(
         partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         factory: _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 10,
-            Window = TimeSpan.FromMinutes(1),
+            PermitLimit = rateLimit.LoginPermitLimit,
+            Window = TimeSpan.FromMinutes(rateLimit.LoginWindowMinutes),
             QueueLimit = 0,
             AutoReplenishment = true
         }));
@@ -179,7 +206,7 @@ if (app.Environment.EnvironmentName != "Testing")
 }
 
 app.MapControllers();
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health").DisableRateLimiting();
 app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
