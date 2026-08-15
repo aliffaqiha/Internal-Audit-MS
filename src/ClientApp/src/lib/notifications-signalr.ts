@@ -27,13 +27,17 @@ async function getHubToken(): Promise<string> {
   return hubToken.token
 }
 
+const API_URL = (import.meta.env.VITE_API_URL as string | undefined) || ""
+const DEFAULT_HUB_URL = API_URL ? `${API_URL.replace(/\/api\/?$/, "")}/hubs/notifications` : "/hubs/notifications"
+const HUB_URL = (import.meta.env.VITE_HUB_URL as string | undefined) || DEFAULT_HUB_URL
+
 export function connectNotificationsHub(): HubConnection {
   if (connection && connection.state !== HubConnectionState.Disconnected) {
     return connection
   }
 
   connection = new HubConnectionBuilder()
-    .withUrl("/hubs/notifications", {
+    .withUrl(HUB_URL, {
       accessTokenFactory: () => getHubToken(),
     })
     .withAutomaticReconnect()
