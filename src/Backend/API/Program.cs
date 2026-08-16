@@ -239,9 +239,12 @@ if (app.Environment.EnvironmentName != "Testing")
     {
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         await db.Database.MigrateAsync();
+        var seedAdmin = builder.Configuration.GetSection(SeedAdminOptions.SectionName)
+            .Get<SeedAdminOptions>();
         await ApplicationDbSeeder.SeedAsync(
             db,
-            includeDefaultAdmin: app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Testing");
+            includeDefaultAdmin: app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Testing",
+            seedAdmin: seedAdmin);
     }
 }
 

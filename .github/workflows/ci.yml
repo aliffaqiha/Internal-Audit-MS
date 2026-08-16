@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 env:
   DOTNET_VERSION: "10.0.x"
@@ -31,13 +32,17 @@ jobs:
           cache: npm
           cache-dependency-path: src/ClientApp/package-lock.json
 
-      - name: Restore & Build Backend
-        working-directory: src/Backend
-        run: dotnet build --configuration Release
+      - name: Build Backend
+        run: dotnet build src/Backend/API/IAMS.Api.csproj -c Release --nologo -v minimal
 
-      - name: Run Backend Tests
-        working-directory: src/Backend
-        run: dotnet test --configuration Release --no-build
+      - name: Test Domain
+        run: dotnet test tests/Domain.UnitTests/IAMS.Domain.UnitTests.csproj -c Release --nologo -v minimal
+
+      - name: Test Application
+        run: dotnet test tests/Application.UnitTests/IAMS.Application.UnitTests.csproj -c Release --nologo -v minimal
+
+      - name: Test API (integration)
+        run: dotnet test tests/API.IntegrationTests/IAMS.API.IntegrationTests.csproj -c Release --nologo -v minimal
 
       - name: Install Frontend Dependencies
         working-directory: src/ClientApp
@@ -50,6 +55,108 @@ jobs:
       - name: Build Frontend
         working-directory: src/ClientApp
         run: npm run build
+
+  e2e:
+    name: Playwright E2E
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: iams
+          POSTGRES_USER: iams
+          POSTGRES_PASSWORD: iams_dev_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U iams -d iams"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      minio:
+        image: minio/minio:latest
+        command: server /data --console-address ":9001"
+        env:
+          MINIO_ROOT_USER: iams_minio
+          MINIO_ROOT_PASSWORD: iams_minio_secret
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: src/ClientApp/package-lock.json
+
+      - name: Build Backend
+        run: dotnet build src/Backend/API/IAMS.Api.csproj -c Release --nologo -v minimal
+
+      - name: Start API
+        working-directory: src/Backend/API
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5000
+          SeedAdmin__Password: Admin1234
+          SeedAdmin__MustChangePassword: "false"
+          RateLimiting__GlobalPermitLimit: "10000"
+          RateLimiting__LoginPermitLimit: "200"
+          RateLimiting__AuthPermitLimit: "400"
+        run: |
+          nohup dotnet bin/Release/net10.0/IAMS.Api.dll > api.log 2>&1 &
+          ok=0
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:5000/health >/dev/null 2>&1; then ok=1; break; fi
+            sleep 2
+          done
+          if [ "$ok" != "1" ]; then echo "API failed to start"; tail -100 api.log; exit 1; fi
+
+      - name: Install Frontend Dependencies
+        working-directory: src/ClientApp
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: src/ClientApp
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        working-directory: src/ClientApp
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            src/ClientApp/playwright-report/
+            src/ClientApp/test-results/
+          retention-days: 7
 
   docker-image:
     name: Build Docker Image
