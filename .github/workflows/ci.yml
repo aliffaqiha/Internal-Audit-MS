@@ -120,8 +120,16 @@ jobs:
       - name: Start API
         working-directory: src/Backend/API
         env:
-          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_ENVIRONMENT: Production
           ASPNETCORE_URLS: http://localhost:5000
+          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=iams;Username=iams;Password=iams_dev_password"
+          ConnectionStrings__Redis: localhost:6379
+          Jwt__SecretKey: ci-secret-key-change-me-0123456789abcdef0123456789abcdef
+          Jwt__SecureCookie: "false"
+          Minio__Endpoint: localhost:9000
+          Minio__AccessKey: iams_minio
+          Minio__SecretKey: iams_minio_secret
+          SeedAdmin__Enabled: "true"
           SeedAdmin__Password: Admin1234
           SeedAdmin__MustChangePassword: "false"
           RateLimiting__GlobalPermitLimit: "10000"
@@ -130,7 +138,7 @@ jobs:
         run: |
           nohup dotnet bin/Release/net10.0/IAMS.Api.dll > api.log 2>&1 &
           ok=0
-          for i in $(seq 1 60); do
+          for i in $(seq 1 90); do
             if curl -sf http://localhost:5000/health >/dev/null 2>&1; then ok=1; break; fi
             sleep 2
           done
